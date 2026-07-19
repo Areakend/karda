@@ -1,0 +1,78 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      # Karda est un projet Expo "managed" : le dossier android/ n'existe
+      # pas dans le repo, il est régénéré à chaque build.
+      - name: Generate native Android project
+        run: npx expo prebuild --platform android
+
+      - name: Grant execute permission for gradlew
+        working-directory: android
+        run: chmod +x gradlew
+
+      # Le gabarit Expo signe le variant "release" avec la clé de debug par
+      # défaut (voir android/app/build.gradle généré). L'APK produit est donc
+      # installable sur ton téléphone pour tester, mais pas signé pour une
+      # vraie distribution (Play Store). Pour ça il faudrait une vraie clé de
+      # signature — dis-le si tu veux qu'on mette ça en place plus tard.
+      - name: Build release APK
+        working-directory: android
+        run: ./gradlew assembleRelease
+
+      - name: Extract version from package.json
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "APP_VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Rename APK
+        run: |
+          mv android/app/build/outputs/apk/release/app-release.apk "karda-${{ env.APP_VERSION }}.apk"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: karda-apk
+          path: "karda-${{ env.APP_VERSION }}.apk"
+
+      - name: Create/update release with the APK
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "karda-${{ env.APP_VERSION }}.apk"
+          tag: "latest-apk"
+          name: "Karda — dernier build (v${{ env.APP_VERSION }})"
+          body: |
+            Build automatique depuis `${{ github.ref_name }}` (commit ${{ github.sha }}).
+
+            ⚠️ APK signé avec la clé de debug — installable pour tester, pas pour publier tel quel.
+          allowUpdates: true
+          makeLatest: true
