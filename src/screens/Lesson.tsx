@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
@@ -12,8 +13,8 @@ import { wordsOfGroup } from '../data/words';
 import { makeQuiz, Question } from '../lib/engine';
 import { speakHy } from '../lib/speech';
 import { Progress } from '../lib/store';
-import { Button, Card, ProgressBar } from '../ui/components';
-import { C } from '../ui/theme';
+import { Button, ProgressBar } from '../ui/components';
+import { C, F, G, R, SHADOW, SHADOW_STRONG } from '../ui/theme';
 import QuizView from './QuizView';
 import TraceModal from './TraceModal';
 
@@ -66,17 +67,19 @@ export default function Lesson({
 
   if (phase === 'done') {
     return (
-      <View style={[st.wrap, { justifyContent: 'center', padding: 24 }]}>
-        <Text style={st.doneEmoji}>{finalScore >= 5 ? '🏆' : finalScore >= 3 ? '🎉' : '💪'}</Text>
+      <View style={[st.wrap, { justifyContent: 'center', alignItems: 'center', padding: 32 }]}>
+        <LinearGradient colors={G.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={st.doneBadge}>
+          <Text style={st.doneBadgeTxt}>
+            {finalScore >= 5 ? '🏆' : finalScore >= 3 ? '🎉' : '💪'}
+          </Text>
+        </LinearGradient>
         <Text style={st.doneTitle}>Leçon {group + 1} terminée !</Text>
-        <Text style={st.doneScore}>
-          {finalScore}/6 bonnes réponses · +50 XP
-        </Text>
+        <Text style={st.doneScore}>{finalScore}/6 bonnes réponses · +50 XP</Text>
         <Text style={st.doneTxt}>
           Les nouvelles lettres vont maintenant apparaître dans tes quiz de
           révision. Répète-les pour les rendre « acquises ».
         </Text>
-        <View style={{ marginTop: 24 }}>
+        <View style={{ marginTop: 28, alignSelf: 'stretch' }}>
           <Button label="Continuer" onPress={() => onComplete(finalScore, 6)} />
         </View>
       </View>
@@ -91,10 +94,17 @@ export default function Lesson({
           onQuit={onQuit}
           value={0.9}
         />
-        <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: 40 }}>
+        <ScrollView
+          contentContainerStyle={{ padding: 18, paddingBottom: 48 }}
+          showsVerticalScrollIndicator={false}
+        >
           <Text style={st.wordsIntro}>
-            Avec {letters.map((l) => l.U).join(', ')}, tu peux déjà lire ces
-            mots. Essaie à voix haute, puis touche un mot pour vérifier.
+            Avec{' '}
+            <Text style={{ fontFamily: F.hyBold, color: C.grenat }}>
+              {letters.map((l) => l.U).join(' ')}
+            </Text>
+            , tu peux déjà lire ces mots. Essaie à voix haute, puis touche pour
+            vérifier.
           </Text>
           {words.map((w) => (
             <RevealWord
@@ -105,7 +115,7 @@ export default function Lesson({
               translit={transliterate(w.hy, dialect)}
             />
           ))}
-          <View style={{ marginTop: 16 }}>
+          <View style={{ marginTop: 18 }}>
             <Button label="Petit quiz pour valider !" onPress={() => setPhase('quiz')} />
           </View>
         </ScrollView>
@@ -125,40 +135,58 @@ export default function Lesson({
         onQuit={onQuit}
         value={(idx + 1) / (letters.length + 2)}
       />
-      <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: 40 }}>
+      <ScrollView
+        contentContainerStyle={{ padding: 18, paddingBottom: 48 }}
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={st.newLabel}>
           Nouvelle lettre {idx + 1}/{letters.length}
         </Text>
-        <Card style={{ alignItems: 'center', paddingVertical: 28 }}>
-          <Pressable onPress={() => speakHy(letter.U, p.r)}>
-            <Text style={st.glyph}>
-              {letter.U} {letter.L}
-            </Text>
-          </Pressable>
+
+        <View style={st.letterCard}>
+          <LinearGradient
+            colors={['#FFF3E4', '#FFE3D2']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={st.letterHalo}
+          >
+            <Pressable onPress={() => speakHy(letter.U, p.r)}>
+              <Text style={st.glyph}>
+                {letter.U} {letter.L}
+              </Text>
+            </Pressable>
+          </LinearGradient>
           <Text style={st.name}>
-            « {letter.nameHy} » ({letterName(letter, dialect)})
+            « {letter.nameHy} » · {letterName(letter, dialect)}
           </Text>
-          <View style={st.soundPill}>
+          <LinearGradient
+            colors={G.primary}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={st.soundPill}
+          >
             <Text style={st.soundPillTxt}>
               {p.rInitial ? `${p.rInitial} / ${p.r}` : p.r}
             </Text>
-          </View>
+          </LinearGradient>
           <Text style={st.hint}>{p.hint}</Text>
           {letter.tip && <Text style={st.tip}>💡 {letter.tip}</Text>}
-          <View style={{ flexDirection: 'row', gap: 10, marginTop: 14, alignSelf: 'stretch' }}>
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 18, alignSelf: 'stretch' }}>
             <View style={{ flex: 1 }}>
-              <Button label="🔊 Écouter" kind="ghost" onPress={() => speakHy(letter.U, p.r)} />
+              <Button label="🔊 Écouter" kind="soft" onPress={() => speakHy(letter.U, p.r)} />
             </View>
             <View style={{ flex: 1 }}>
-              <Button label="✍️ Tracer" kind="ghost" onPress={() => setTracing(true)} />
+              <Button label="✍️ Tracer" kind="soft" onPress={() => setTracing(true)} />
             </View>
           </View>
-        </Card>
+        </View>
+
         <TraceModal
           letter={tracing ? letter : null}
           dialect={dialect}
           onClose={() => setTracing(false)}
         />
+
         <View style={st.navRow}>
           {idx > 0 ? (
             <View style={{ flex: 1 }}>
@@ -190,12 +218,12 @@ function Header({
 }) {
   return (
     <View style={st.top}>
-      <Pressable onPress={onQuit} hitSlop={12}>
+      <Pressable onPress={onQuit} hitSlop={12} style={st.quitBtn}>
         <Text style={st.quit}>✕</Text>
       </Pressable>
       <View style={{ flex: 1, marginLeft: 14 }}>
         <Text style={st.topTitle}>{title}</Text>
-        <View style={{ marginTop: 6 }}>
+        <View style={{ marginTop: 7 }}>
           <ProgressBar value={value} />
         </View>
       </View>
@@ -221,13 +249,13 @@ function RevealWord({
         setRevealed(!revealed);
         if (!revealed) speakHy(hy, translit);
       }}
-      style={st.word}
+      style={({ pressed }) => [st.word, pressed && { transform: [{ scale: 0.985 }] }]}
     >
       <Text style={st.wordHy}>
         {emoji} {hy}
       </Text>
-      <Text style={st.wordAnswer}>
-        {revealed ? `${translit} — ${fr}` : 'Touche pour vérifier 👆'}
+      <Text style={[st.wordAnswer, revealed && { color: C.grenat, fontFamily: F.uiBold }]}>
+        {revealed ? `${translit} — ${fr}` : 'Touche pour vérifier'}
       </Text>
     </Pressable>
   );
@@ -239,65 +267,124 @@ const st = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     paddingHorizontal: 18,
-    paddingTop: 54,
-    paddingBottom: 10,
+    paddingTop: 58,
+    paddingBottom: 12,
   },
-  quit: { fontSize: 20, color: C.textSoft, fontWeight: '700', marginTop: 2 },
-  topTitle: { fontSize: 14, fontWeight: '700', color: C.textSoft },
+  quitBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: C.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOW,
+  },
+  quit: { fontSize: 15, color: C.inkSoft, fontFamily: F.uiX },
+  topTitle: { fontSize: 13.5, fontFamily: F.uiBold, color: C.inkSoft },
   newLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: C.primary,
-    letterSpacing: 1,
-    marginBottom: 8,
+    fontSize: 11,
+    fontFamily: F.uiX,
+    color: C.grenat,
+    letterSpacing: 1.2,
+    marginBottom: 10,
     textTransform: 'uppercase',
   },
-  // Poids normal : les polices arméniennes de secours du système n'ont
-  // pas toutes une vraie graisse grasse, un poids élevé fait donc
-  // synthétiser un faux gras qui déforme les lettres.
-  glyph: { fontSize: 84, fontWeight: 'normal', color: C.text },
-  name: { fontSize: 15, color: C.textSoft, marginTop: 4 },
-  soundPill: {
-    backgroundColor: C.primarySoft,
-    borderRadius: 999,
-    paddingVertical: 8,
-    paddingHorizontal: 22,
-    marginTop: 14,
+  letterCard: {
+    backgroundColor: C.card,
+    borderRadius: R.xl,
+    padding: 22,
+    alignItems: 'center',
+    ...SHADOW,
   },
-  soundPillTxt: { fontSize: 24, fontWeight: '800', color: C.primary },
+  letterHalo: {
+    alignSelf: 'stretch',
+    borderRadius: R.l,
+    alignItems: 'center',
+    paddingVertical: 22,
+  },
+  glyph: { fontSize: 88, fontFamily: F.hyBold, color: C.ink, lineHeight: 116 },
+  name: { fontSize: 14, fontFamily: F.uiSemi, color: C.inkSoft, marginTop: 14 },
+  soundPill: {
+    borderRadius: 999,
+    paddingVertical: 9,
+    paddingHorizontal: 26,
+    marginTop: 12,
+  },
+  soundPillTxt: { fontSize: 23, fontFamily: F.uiX, color: C.white },
   hint: {
     fontSize: 15,
-    color: C.text,
+    fontFamily: F.ui,
+    color: C.ink,
     textAlign: 'center',
-    marginTop: 12,
+    marginTop: 14,
     lineHeight: 22,
     paddingHorizontal: 8,
   },
   tip: {
-    fontSize: 13.5,
-    color: C.textSoft,
+    fontSize: 13,
+    fontFamily: F.ui,
+    color: C.inkSoft,
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 19,
     paddingHorizontal: 8,
   },
-  navRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
-  wordsIntro: { fontSize: 15, color: C.text, lineHeight: 22, marginBottom: 14 },
+  navRow: { flexDirection: 'row', gap: 10, marginTop: 18 },
+  wordsIntro: {
+    fontSize: 15,
+    fontFamily: F.ui,
+    color: C.ink,
+    lineHeight: 23,
+    marginBottom: 16,
+  },
   word: {
     backgroundColor: C.card,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: C.border,
+    borderRadius: R.m,
     padding: 16,
     marginBottom: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    ...SHADOW,
   },
-  wordHy: { fontSize: 24, fontWeight: 'normal', color: C.text },
-  wordAnswer: { fontSize: 13.5, color: C.textSoft, flexShrink: 1, textAlign: 'right', marginLeft: 12 },
-  doneEmoji: { fontSize: 64, textAlign: 'center' },
-  doneTitle: { fontSize: 26, fontWeight: '800', color: C.text, textAlign: 'center', marginTop: 12 },
-  doneScore: { fontSize: 16, fontWeight: '700', color: C.primary, textAlign: 'center', marginTop: 8 },
-  doneTxt: { fontSize: 14.5, color: C.textSoft, textAlign: 'center', marginTop: 12, lineHeight: 21 },
+  wordHy: { fontSize: 23, fontFamily: F.hy, color: C.ink },
+  wordAnswer: {
+    fontSize: 13,
+    fontFamily: F.uiSemi,
+    color: C.inkSoft,
+    flexShrink: 1,
+    textAlign: 'right',
+    marginLeft: 12,
+  },
+  doneBadge: {
+    width: 112,
+    height: 112,
+    borderRadius: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOW_STRONG,
+  },
+  doneBadgeTxt: { fontSize: 52 },
+  doneTitle: {
+    fontSize: 26,
+    fontFamily: F.uiX,
+    color: C.ink,
+    textAlign: 'center',
+    marginTop: 20,
+  },
+  doneScore: {
+    fontSize: 15,
+    fontFamily: F.uiBold,
+    color: C.grenat,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  doneTxt: {
+    fontSize: 14,
+    fontFamily: F.ui,
+    color: C.inkSoft,
+    textAlign: 'center',
+    marginTop: 12,
+    lineHeight: 21,
+  },
 });

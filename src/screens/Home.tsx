@@ -1,10 +1,11 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { GROUP_COUNT, GROUP_TITLES, LETTERS } from '../data/alphabet';
-import { acquiredCount, suggest, Suggestion } from '../lib/engine';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { GROUP_COUNT, GROUP_TITLES, LETTERS, lettersOfGroup } from '../data/alphabet';
+import { acquiredCount, MASTERY, suggest, Suggestion } from '../lib/engine';
 import { Progress } from '../lib/store';
-import { Button, Card, ProgressBar } from '../ui/components';
-import { C } from '../ui/theme';
+import { Button, Card, Chip, Ring } from '../ui/components';
+import { C, F, G, R, SHADOW } from '../ui/theme';
 
 export default function Home({
   progress,
@@ -18,143 +19,235 @@ export default function Home({
   const acquired = acquiredCount(progress);
   const total = LETTERS.length;
   const s: Suggestion = suggest(progress);
-  const lessonsDone = progress.completed.length;
 
   return (
-    <ScrollView contentContainerStyle={st.wrap}>
-      <View style={st.header}>
-        <View>
-          <Text style={st.hello}>Բարև՛</Text>
-          <Text style={st.helloSub}>Prêt(e) à lire l'arménien ?</Text>
-        </View>
-        {progress.streak > 0 && (
-          <View style={st.streak}>
-            <Text style={st.streakTxt}>🔥 {progress.streak}</Text>
-            <Text style={st.streakSub}>jour{progress.streak > 1 ? 's' : ''}</Text>
+    <ScrollView contentContainerStyle={st.wrap} showsVerticalScrollIndicator={false}>
+      {/* ——— Héro ——— */}
+      <LinearGradient
+        colors={G.hero}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1.1, y: 1 }}
+        style={st.hero}
+      >
+        <Text style={st.heroWatermark}>Կ</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={st.heroHello}>Բարև՛</Text>
+          <Text style={st.heroSub}>Ta lecture arménienne</Text>
+          <View style={st.heroChips}>
+            {progress.streak > 0 && (
+              <Chip tone="glass" label={`🔥 ${progress.streak} jour${progress.streak > 1 ? 's' : ''}`} />
+            )}
+            <Chip tone="glass" label={`⭐ ${progress.xp} XP`} />
           </View>
-        )}
-      </View>
-
-      <Card>
-        <View style={st.rowBetween}>
-          <Text style={st.cardTitle}>Lettres acquises</Text>
-          <Text style={st.count}>
-            {acquired}
-            <Text style={st.countTotal}> / {total}</Text>
-          </Text>
         </View>
-        <ProgressBar value={acquired / total} />
-        <View style={[st.rowBetween, { marginTop: 10 }]}>
-          <Text style={st.meta}>
-            {lessonsDone}/{GROUP_COUNT} leçons
-          </Text>
-          <Text style={st.meta}>⭐ {progress.xp} XP</Text>
-        </View>
-      </Card>
+        <Ring size={92} stroke={9} value={acquired / total}>
+          <Text style={st.ringCount}>{acquired}</Text>
+          <Text style={st.ringTotal}>/ {total}</Text>
+        </Ring>
+      </LinearGradient>
 
-      <Card style={{ marginTop: 14, backgroundColor: C.primarySoft, borderColor: C.primarySoft }}>
-        <Text style={st.suggestKicker}>CONSEILLÉ MAINTENANT</Text>
+      {/* ——— Suggestion ——— */}
+      <Card style={{ marginTop: 18 }}>
+        <Text style={st.eyebrow}>CONSEILLÉ MAINTENANT</Text>
         <Text style={st.suggestTitle}>
           {s.kind === 'lesson'
             ? `Leçon ${s.group + 1} · ${GROUP_TITLES[s.group]}`
             : 'Quiz de révision'}
         </Text>
         <Text style={st.suggestReason}>{s.reason}</Text>
-        <View style={{ marginTop: 14 }}>
+        <View style={{ marginTop: 16 }}>
           <Button
             label={s.kind === 'lesson' ? 'Commencer la leçon' : 'Lancer le quiz'}
             onPress={() => (s.kind === 'lesson' ? onLesson(s.group) : onQuiz())}
           />
         </View>
+        {progress.completed.length > 0 && s.kind === 'lesson' && (
+          <View style={{ marginTop: 10 }}>
+            <Button label="Ou réviser avec un quiz libre" kind="soft" onPress={onQuiz} />
+          </View>
+        )}
       </Card>
 
-      {lessonsDone > 0 && s.kind === 'lesson' && (
-        <View style={{ marginTop: 14 }}>
-          <Button label="Ou réviser avec un quiz libre" kind="ghost" onPress={onQuiz} />
-        </View>
-      )}
-
+      {/* ——— Parcours (timeline) ——— */}
       <Text style={st.sectionTitle}>Parcours</Text>
-      {GROUP_TITLES.map((title, g) => {
-        const done = progress.completed.includes(g);
-        const isNext = !done && progress.completed.length === g;
-        const locked = !done && !isNext;
-        return (
-          <Card
-            key={g}
-            style={{
-              marginBottom: 10,
-              opacity: locked ? 0.55 : 1,
-              borderColor: isNext ? C.primary : C.border,
-            }}
-          >
-            <View style={st.rowBetween}>
-              <View style={{ flex: 1, paddingRight: 10 }}>
-                <Text style={st.lessonNum}>
-                  {done ? '✅' : isNext ? '👉' : '🔒'} Leçon {g + 1}
-                </Text>
-                <Text style={st.lessonTitle}>{title}</Text>
+      <View style={st.path}>
+        {GROUP_TITLES.map((title, g) => {
+          const done = progress.completed.includes(g);
+          const isNext = !done && progress.completed.length === g;
+          const locked = !done && !isNext;
+          const letters = lettersOfGroup(g);
+          const mastered = letters.filter(
+            (l) => (progress.strengths[l.id] ?? 0) >= MASTERY
+          ).length;
+          const isLast = g === GROUP_COUNT - 1;
+          return (
+            <View key={g} style={st.pathRow}>
+              {/* Colonne nœud + connecteur */}
+              <View style={st.nodeCol}>
+                {done ? (
+                  <LinearGradient colors={G.primary} style={st.node}>
+                    <Text style={st.nodeTxtDone}>✓</Text>
+                  </LinearGradient>
+                ) : (
+                  <View
+                    style={[
+                      st.node,
+                      isNext ? st.nodeNext : st.nodeLocked,
+                    ]}
+                  >
+                    <Text style={[st.nodeTxt, locked && { color: C.locked }]}>
+                      {g + 1}
+                    </Text>
+                  </View>
+                )}
+                {!isLast && (
+                  <View
+                    style={[
+                      st.connector,
+                      { backgroundColor: done ? C.apricot : C.line },
+                    ]}
+                  />
+                )}
               </View>
-              {(isNext || done) && (
-                <Button
-                  label={done ? 'Revoir' : 'Go !'}
-                  kind={done ? 'ghost' : 'primary'}
-                  onPress={() => onLesson(g)}
-                />
-              )}
+
+              {/* Carte étape */}
+              <Pressable
+                disabled={locked}
+                onPress={() => onLesson(g)}
+                style={({ pressed }) => [
+                  st.step,
+                  isNext && st.stepNext,
+                  locked && { opacity: 0.55 },
+                  pressed && !locked && { transform: [{ scale: 0.985 }] },
+                ]}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={st.stepTitle}>{title}</Text>
+                  <Text style={st.stepGlyphs}>
+                    {letters.map((l) => l.U).join('  ')}
+                  </Text>
+                  {done && (
+                    <Text style={st.stepMeta}>
+                      {mastered}/{letters.length} lettres acquises
+                    </Text>
+                  )}
+                </View>
+                {!locked && (
+                  <Text style={[st.stepArrow, isNext && { color: C.grenat }]}>
+                    {done ? '↻' : '→'}
+                  </Text>
+                )}
+              </Pressable>
             </View>
-          </Card>
-        );
-      })}
+          );
+        })}
+      </View>
     </ScrollView>
   );
 }
 
 const st = StyleSheet.create({
-  wrap: { padding: 18, paddingTop: 54, paddingBottom: 40 },
-  header: {
+  wrap: { padding: 18, paddingTop: 60, paddingBottom: 120 },
+  hero: {
+    borderRadius: R.xl,
+    padding: 22,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    gap: 16,
+    overflow: 'hidden',
+    ...SHADOW,
   },
-  hello: { fontSize: 32, fontWeight: 'normal', color: C.text },
-  helloSub: { fontSize: 14, color: C.textSoft, marginTop: 2 },
-  streak: {
-    backgroundColor: C.card,
-    borderRadius: 14,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: C.border,
+  heroWatermark: {
+    position: 'absolute',
+    right: -18,
+    top: -38,
+    fontSize: 190,
+    fontFamily: F.hyBold,
+    color: 'rgba(255,255,255,0.10)',
   },
-  streakTxt: { fontSize: 18, fontWeight: '800', color: C.text },
-  streakSub: { fontSize: 11, color: C.textSoft },
-  rowBetween: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  heroHello: { fontSize: 34, fontFamily: F.hyBold, color: C.white },
+  heroSub: {
+    fontSize: 13.5,
+    fontFamily: F.uiSemi,
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 2,
   },
-  cardTitle: { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 8 },
-  count: { fontSize: 22, fontWeight: '800', color: C.primary },
-  countTotal: { fontSize: 14, color: C.textSoft, fontWeight: '600' },
-  meta: { fontSize: 12.5, color: C.textSoft },
-  suggestKicker: {
+  heroChips: { flexDirection: 'row', gap: 8, marginTop: 12, flexWrap: 'wrap' },
+  ringCount: { fontSize: 26, fontFamily: F.uiX, color: C.white, lineHeight: 30 },
+  ringTotal: { fontSize: 11, fontFamily: F.uiBold, color: 'rgba(255,255,255,0.8)' },
+  eyebrow: {
     fontSize: 11,
-    fontWeight: '800',
-    color: C.primary,
-    letterSpacing: 1,
+    fontFamily: F.uiX,
+    color: C.grenat,
+    letterSpacing: 1.2,
   },
-  suggestTitle: { fontSize: 19, fontWeight: '800', color: C.text, marginTop: 6 },
-  suggestReason: { fontSize: 14, color: C.textSoft, marginTop: 4, lineHeight: 20 },
+  suggestTitle: { fontSize: 19, fontFamily: F.uiX, color: C.ink, marginTop: 8 },
+  suggestReason: {
+    fontSize: 14,
+    fontFamily: F.ui,
+    color: C.inkSoft,
+    marginTop: 4,
+    lineHeight: 20,
+  },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: C.text,
-    marginTop: 24,
-    marginBottom: 10,
+    fontSize: 20,
+    fontFamily: F.uiX,
+    color: C.ink,
+    marginTop: 28,
+    marginBottom: 14,
   },
-  lessonNum: { fontSize: 13, fontWeight: '700', color: C.textSoft },
-  lessonTitle: { fontSize: 16, fontWeight: '700', color: C.text, marginTop: 2 },
+  path: {},
+  pathRow: { flexDirection: 'row', gap: 14 },
+  nodeCol: { alignItems: 'center', width: 44 },
+  node: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.card,
+  },
+  nodeNext: {
+    borderWidth: 2.5,
+    borderColor: C.coral,
+    ...SHADOW,
+  },
+  nodeLocked: {
+    borderWidth: 1.5,
+    borderColor: C.line,
+    backgroundColor: C.bgDeep,
+  },
+  nodeTxt: { fontSize: 16, fontFamily: F.uiX, color: C.coral },
+  nodeTxtDone: { fontSize: 18, fontFamily: F.uiX, color: C.white },
+  connector: { width: 3, flex: 1, borderRadius: 2, marginVertical: 4, minHeight: 18 },
+  step: {
+    flex: 1,
+    backgroundColor: C.card,
+    borderRadius: R.m,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    ...SHADOW,
+  },
+  stepNext: {
+    borderWidth: 2,
+    borderColor: C.coral,
+  },
+  stepTitle: { fontSize: 15, fontFamily: F.uiBold, color: C.ink },
+  stepGlyphs: {
+    fontSize: 15,
+    fontFamily: F.hy,
+    color: C.inkSoft,
+    marginTop: 3,
+  },
+  stepMeta: {
+    fontSize: 11.5,
+    fontFamily: F.uiSemi,
+    color: C.success,
+    marginTop: 3,
+  },
+  stepArrow: { fontSize: 20, fontFamily: F.uiX, color: C.inkSoft },
 });

@@ -5,7 +5,7 @@ import { phrasesUpToGroup } from '../data/phrases';
 import { wordsUpToGroup } from '../data/words';
 import { speakHy } from '../lib/speech';
 import { Progress } from '../lib/store';
-import { C } from '../ui/theme';
+import { C, F, R, SHADOW } from '../ui/theme';
 
 /**
  * Bibliothèque de lecture : tous les mots et phrases déjà lisibles avec les
@@ -34,7 +34,7 @@ export default function Words({
   }
 
   return (
-    <ScrollView contentContainerStyle={st.wrap}>
+    <ScrollView contentContainerStyle={st.wrap} showsVerticalScrollIndicator={false}>
       <Text style={st.title}>Mes mots</Text>
       <Text style={st.subtitle}>
         {words.length === 0
@@ -47,12 +47,12 @@ export default function Words({
           <Pressable
             key={w.hy}
             onPress={() => toggle(w.hy, transliterate(w.hy, dialect))}
-            style={st.word}
+            style={({ pressed }) => [st.word, pressed && { transform: [{ scale: 0.985 }] }]}
           >
             <Text style={st.wordHy}>
               {w.emoji} {w.hy}
             </Text>
-            <Text style={[st.wordAnswer, isOpen && { color: C.primary, fontWeight: '700' }]}>
+            <Text style={[st.wordAnswer, isOpen && st.wordAnswerOpen]}>
               {isOpen ? `${transliterate(w.hy, dialect)} — ${w.fr}` : '···'}
             </Text>
           </Pressable>
@@ -63,7 +63,7 @@ export default function Words({
         <>
           <Text style={st.sectionTitle}>Phrases courtes</Text>
           <Text style={st.subtitle}>
-            Des vrais bouts de phrases, avec le vocabulaire déjà vu ci-dessus.
+            De vrais bouts de phrases, avec le vocabulaire déjà vu ci-dessus.
           </Text>
           {phrases.map((ph) => {
             const isOpen = revealed.has(ph.hy);
@@ -71,11 +71,16 @@ export default function Words({
               <Pressable
                 key={ph.hy}
                 onPress={() => toggle(ph.hy, transliteratePhrase(ph.hy, dialect))}
-                style={st.phrase}
+                style={({ pressed }) => [
+                  st.phrase,
+                  pressed && { transform: [{ scale: 0.985 }] },
+                ]}
               >
                 <Text style={st.phraseHy}>{ph.hy}</Text>
-                <Text style={[st.wordAnswer, isOpen && { color: C.primary, fontWeight: '700' }]}>
-                  {isOpen ? `${transliteratePhrase(ph.hy, dialect)} — ${ph.fr}` : 'Touche pour vérifier 👆'}
+                <Text style={[st.wordAnswer, { textAlign: 'left' }, isOpen && st.phraseOpen]}>
+                  {isOpen
+                    ? `${transliteratePhrase(ph.hy, dialect)} — ${ph.fr}`
+                    : 'Touche pour vérifier'}
                 </Text>
               </Pressable>
             );
@@ -87,40 +92,49 @@ export default function Words({
 }
 
 const st = StyleSheet.create({
-  wrap: { padding: 18, paddingTop: 54, paddingBottom: 40 },
-  title: { fontSize: 28, fontWeight: '800', color: C.text },
-  subtitle: { fontSize: 14, color: C.textSoft, marginTop: 4, marginBottom: 16, lineHeight: 20 },
+  wrap: { padding: 18, paddingTop: 60, paddingBottom: 120 },
+  title: { fontSize: 28, fontFamily: F.uiX, color: C.ink },
+  subtitle: {
+    fontSize: 14,
+    fontFamily: F.ui,
+    color: C.inkSoft,
+    marginTop: 4,
+    marginBottom: 18,
+    lineHeight: 20,
+  },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '800',
-    color: C.text,
-    marginTop: 20,
+    fontFamily: F.uiX,
+    color: C.ink,
+    marginTop: 26,
     marginBottom: 4,
   },
   word: {
     backgroundColor: C.card,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: C.border,
+    borderRadius: R.m,
     padding: 16,
     marginBottom: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    ...SHADOW,
   },
-  wordHy: { fontSize: 24, fontWeight: 'normal', color: C.text },
+  wordHy: { fontSize: 23, fontFamily: F.hy, color: C.ink },
   wordAnswer: {
-    fontSize: 13.5,
-    color: C.textSoft,
+    fontSize: 13,
+    fontFamily: F.uiSemi,
+    color: C.inkSoft,
     flexShrink: 1,
     textAlign: 'right',
     marginLeft: 12,
   },
+  wordAnswerOpen: { color: C.grenat, fontFamily: F.uiBold },
   phrase: {
-    backgroundColor: C.blueSoft,
-    borderRadius: 16,
+    backgroundColor: C.tealSoft,
+    borderRadius: R.m,
     padding: 16,
     marginBottom: 10,
   },
-  phraseHy: { fontSize: 22, fontWeight: 'normal', color: C.text, marginBottom: 6 },
+  phraseHy: { fontSize: 21, fontFamily: F.hy, color: C.ink, marginBottom: 6, lineHeight: 30 },
+  phraseOpen: { color: C.teal, fontFamily: F.uiBold },
 });

@@ -12,7 +12,7 @@ import Svg, { Path } from 'react-native-svg';
 import { Dialect, Letter, pron } from '../data/alphabet';
 import { speakHy } from '../lib/speech';
 import { Button } from '../ui/components';
-import { C, R } from '../ui/theme';
+import { C, F, R, SHADOW_STRONG } from '../ui/theme';
 
 const CANVAS = 260;
 
@@ -89,12 +89,12 @@ export default function TraceModal({
             </Text>
             <Svg width={CANVAS} height={CANVAS} style={StyleSheet.absoluteFill}>
               {paths.map((d, i) => (
-                <Path key={i} d={d} stroke={C.primary} strokeWidth={6} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                <Path key={i} d={d} stroke={C.coral} strokeWidth={6} fill="none" strokeLinecap="round" strokeLinejoin="round" />
               ))}
               {current.current !== '' && (
                 <Path
                   d={current.current}
-                  stroke={C.primary}
+                  stroke={C.coral}
                   strokeWidth={6}
                   fill="none"
                   strokeLinecap="round"
@@ -125,26 +125,27 @@ export default function TraceModal({
 const st = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(30,20,10,0.5)',
+    backgroundColor: 'rgba(43,27,46,0.55)',
     justifyContent: 'center',
     padding: 24,
   },
   modal: {
     backgroundColor: C.card,
-    borderRadius: R + 6,
-    padding: 24,
+    borderRadius: R.xl,
+    padding: 26,
     alignItems: 'center',
+    ...SHADOW_STRONG,
   },
-  title: { fontSize: 18, fontWeight: '800', color: C.text },
-  sound: { fontSize: 15, color: C.primary, fontWeight: '700', marginTop: 4 },
+  title: { fontSize: 18, fontFamily: F.uiX, color: C.ink },
+  sound: { fontSize: 15, color: C.grenat, fontFamily: F.uiBold, marginTop: 4 },
   canvasWrap: {
     width: CANVAS,
     height: CANVAS,
     marginTop: 18,
-    borderRadius: 20,
-    backgroundColor: C.bg,
+    borderRadius: R.l,
+    backgroundColor: C.bgDeep,
     borderWidth: 2,
-    borderColor: C.border,
+    borderColor: C.line,
     borderStyle: 'dashed',
     overflow: 'hidden',
     alignItems: 'center',
@@ -152,14 +153,15 @@ const st = StyleSheet.create({
   },
   guide: {
     position: 'absolute',
-    fontSize: 200,
-    lineHeight: 220,
-    fontWeight: 'normal',
-    color: C.border,
+    fontSize: 190,
+    lineHeight: 250,
+    fontFamily: F.hy,
+    color: '#E4D5C3',
   },
   hint: {
-    fontSize: 13,
-    color: C.textSoft,
+    fontSize: 12.5,
+    fontFamily: F.ui,
+    color: C.inkSoft,
     textAlign: 'center',
     marginTop: 14,
   },

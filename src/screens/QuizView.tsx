@@ -1,10 +1,11 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Dialect, pron, transliterate } from '../data/alphabet';
 import { Question } from '../lib/engine';
 import { speakHy } from '../lib/speech';
 import { Button, ProgressBar } from '../ui/components';
-import { C, R } from '../ui/theme';
+import { C, F, G, R, SHADOW } from '../ui/theme';
 
 /**
  * Déroule une série de questions avec feedback immédiat.
@@ -59,6 +60,7 @@ export default function QuizView({
 
   const answered = picked !== null;
   const isCorrect = answered && picked === correctKey;
+  const armenianOptions = q.type === 's2l' || q.type === 'listen';
 
   function pick(key: string) {
     if (answered) return;
@@ -80,10 +82,10 @@ export default function QuizView({
   return (
     <View style={st.wrap}>
       <View style={st.top}>
-        <Pressable onPress={onQuit} hitSlop={12}>
+        <Pressable onPress={onQuit} hitSlop={12} style={st.quitBtn}>
           <Text style={st.quit}>✕</Text>
         </Pressable>
-        <View style={{ flex: 1, marginLeft: 14 }}>
+        <View style={{ flex: 1, marginHorizontal: 14 }}>
           <ProgressBar value={idx / questions.length} />
         </View>
         <Text style={st.counter}>
@@ -91,7 +93,7 @@ export default function QuizView({
         </Text>
       </View>
 
-      <ScrollView contentContainerStyle={st.body}>
+      <ScrollView contentContainerStyle={st.body} showsVerticalScrollIndicator={false}>
         {q.type === 'l2s' && (
           <>
             <Text style={st.prompt}>Comment se lit cette lettre ?</Text>
@@ -121,9 +123,16 @@ export default function QuizView({
             <Text style={st.prompt}>Écoute, puis choisis le bon mot :</Text>
             <Pressable
               onPress={() => speakHy(q.word.hy, transliterate(q.word.hy, dialect))}
-              style={st.listenBtn}
+              style={({ pressed }) => [pressed && { transform: [{ scale: 0.93 }] }]}
             >
-              <Text style={st.listenIcon}>🔊</Text>
+              <LinearGradient
+                colors={G.primary}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={st.listenBtn}
+              >
+                <Text style={st.listenIcon}>🔊</Text>
+              </LinearGradient>
             </Pressable>
           </>
         )}
@@ -138,19 +147,16 @@ export default function QuizView({
               <Pressable
                 key={key}
                 onPress={() => pick(key)}
-                style={[
+                style={({ pressed }) => [
                   st.option,
-                  showCorrect && { backgroundColor: C.successSoft, borderColor: C.success },
-                  showWrong && { backgroundColor: C.errorSoft, borderColor: C.error },
+                  showCorrect && st.optionCorrect,
+                  showWrong && st.optionWrong,
+                  pressed && !answered && { transform: [{ scale: 0.98 }] },
                 ]}
               >
                 <Text
                   style={[
-                    st.optionTxt,
-                    (q.type === 's2l' || q.type === 'listen') && {
-                      fontSize: 24,
-                      fontWeight: 'normal',
-                    },
+                    armenianOptions ? st.optionTxtHy : st.optionTxt,
                     showCorrect && { color: C.success },
                     showWrong && { color: C.error },
                   ]}
@@ -163,7 +169,12 @@ export default function QuizView({
         </View>
 
         {answered && (
-          <View style={[st.feedback, { backgroundColor: isCorrect ? C.successSoft : C.errorSoft }]}>
+          <View
+            style={[
+              st.feedback,
+              { backgroundColor: isCorrect ? C.successSoft : C.errorSoft },
+            ]}
+          >
             <Text style={[st.feedbackTitle, { color: isCorrect ? C.success : C.error }]}>
               {isCorrect ? 'Bravo ! 🎉' : 'Pas tout à fait…'}
             </Text>
@@ -174,7 +185,8 @@ export default function QuizView({
             )}
             {q.type === 'listen' && (
               <Text style={st.feedbackTxt}>
-                {q.word.emoji} {q.word.hy} = « {transliterate(q.word.hy, dialect)} » — {q.word.fr}
+                {q.word.emoji} {q.word.hy} = « {transliterate(q.word.hy, dialect)} » —{' '}
+                {q.word.fr}
               </Text>
             )}
             {q.type === 'l2s' && !isCorrect && (
@@ -187,8 +199,11 @@ export default function QuizView({
                 « {q.sound} » s'écrit {q.letter.U} {q.letter.L}
               </Text>
             )}
-            <View style={{ marginTop: 12 }}>
-              <Button label={idx + 1 >= questions.length ? 'Voir le résultat' : 'Suivant'} onPress={next} />
+            <View style={{ marginTop: 14 }}>
+              <Button
+                label={idx + 1 >= questions.length ? 'Voir le résultat' : 'Suivant'}
+                onPress={next}
+              />
             </View>
           </View>
         )}
@@ -203,56 +218,83 @@ const st = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 18,
-    paddingTop: 54,
-    paddingBottom: 8,
+    paddingTop: 58,
+    paddingBottom: 10,
   },
-  quit: { fontSize: 20, color: C.textSoft, fontWeight: '700' },
-  counter: { marginLeft: 12, fontSize: 13, color: C.textSoft, fontWeight: '700' },
-  body: { padding: 18, paddingBottom: 40 },
-  prompt: { fontSize: 16, color: C.textSoft, textAlign: 'center', marginTop: 12 },
+  quitBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: C.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOW,
+  },
+  quit: { fontSize: 15, color: C.inkSoft, fontFamily: F.uiX },
+  counter: { fontSize: 12.5, color: C.inkSoft, fontFamily: F.uiX },
+  body: { padding: 18, paddingBottom: 48 },
+  prompt: {
+    fontSize: 15,
+    fontFamily: F.uiSemi,
+    color: C.inkSoft,
+    textAlign: 'center',
+    marginTop: 12,
+  },
   bigGlyph: {
-    fontSize: 72,
-    fontWeight: 'normal',
-    color: C.text,
+    fontSize: 74,
+    fontFamily: F.hyBold,
+    color: C.ink,
     textAlign: 'center',
     marginVertical: 18,
+    lineHeight: 100,
   },
   bigSound: {
     fontSize: 44,
-    fontWeight: '800',
-    color: C.primary,
+    fontFamily: F.uiX,
+    color: C.grenat,
     textAlign: 'center',
-    marginVertical: 24,
+    marginVertical: 26,
   },
   bigWord: {
     fontSize: 44,
-    fontWeight: 'normal',
-    color: C.text,
+    fontFamily: F.hy,
+    color: C.ink,
     textAlign: 'center',
     marginVertical: 24,
+    lineHeight: 62,
   },
   listenBtn: {
     alignSelf: 'center',
-    backgroundColor: C.primarySoft,
     borderRadius: 999,
     width: 96,
     height: 96,
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 24,
+    marginVertical: 22,
+    ...SHADOW,
   },
   listenIcon: { fontSize: 40 },
   options: { gap: 10 },
   option: {
     backgroundColor: C.card,
-    borderRadius: R,
+    borderRadius: R.m,
     borderWidth: 2,
-    borderColor: C.border,
-    paddingVertical: 16,
+    borderColor: 'transparent',
+    paddingVertical: 15,
     alignItems: 'center',
+    ...SHADOW,
   },
-  optionTxt: { fontSize: 18, fontWeight: '700', color: C.text },
-  feedback: { borderRadius: R, padding: 16, marginTop: 16 },
-  feedbackTitle: { fontSize: 17, fontWeight: '800' },
-  feedbackTxt: { fontSize: 14.5, color: C.text, marginTop: 6, lineHeight: 20 },
+  optionCorrect: { backgroundColor: C.successSoft, borderColor: C.success },
+  optionWrong: { backgroundColor: C.errorSoft, borderColor: C.error },
+  optionTxt: { fontSize: 17, fontFamily: F.uiBold, color: C.ink },
+  optionTxtHy: { fontSize: 23, fontFamily: F.hy, color: C.ink, lineHeight: 32 },
+  feedback: { borderRadius: R.m, padding: 18, marginTop: 18 },
+  feedbackTitle: { fontSize: 16.5, fontFamily: F.uiX },
+  feedbackTxt: {
+    fontSize: 14,
+    fontFamily: F.ui,
+    color: C.ink,
+    marginTop: 6,
+    lineHeight: 20,
+  },
 });

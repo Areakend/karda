@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import {
   Modal,
@@ -9,11 +10,11 @@ import {
 } from 'react-native';
 import {
   Dialect,
+  GROUP_COUNT,
   GROUP_TITLES,
   Letter,
   letterName,
   lettersOfGroup,
-  GROUP_COUNT,
   pron,
   transliterate,
 } from '../data/alphabet';
@@ -22,15 +23,15 @@ import { isGroupUnlocked, MASTERY } from '../lib/engine';
 import { speakHy } from '../lib/speech';
 import { Progress } from '../lib/store';
 import { Button } from '../ui/components';
-import { C, R } from '../ui/theme';
+import { C, F, G, R, SHADOW, SHADOW_STRONG } from '../ui/theme';
 import TraceModal from './TraceModal';
 
-function letterColor(p: Progress, l: Letter, unlocked: boolean): string {
+function stateColor(p: Progress, l: Letter, unlocked: boolean): string {
   if (!unlocked) return C.locked;
   const s = p.strengths[l.id] ?? 0;
   if (s >= MASTERY) return C.success;
-  if (s >= 1) return C.primary;
-  return C.blue;
+  if (s >= 1) return C.apricot;
+  return C.teal;
 }
 
 export default function Alphabet({
@@ -44,24 +45,25 @@ export default function Alphabet({
   const [tracing, setTracing] = useState<Letter | null>(null);
 
   return (
-    <ScrollView contentContainerStyle={st.wrap}>
+    <ScrollView contentContainerStyle={st.wrap} showsVerticalScrollIndicator={false}>
       <Text style={st.title}>Alphabet</Text>
       <Text style={st.subtitle}>
-        39 sons à apprivoiser. Touche une lettre débloquée pour la découvrir.
+        39 sons à apprivoiser, groupe après groupe.
       </Text>
       <View style={st.legend}>
         <Legend color={C.success} label="acquise" />
-        <Legend color={C.primary} label="en cours" />
-        <Legend color={C.blue} label="nouvelle" />
+        <Legend color={C.apricot} label="en cours" />
+        <Legend color={C.teal} label="nouvelle" />
         <Legend color={C.locked} label="verrouillée" />
       </View>
 
       {Array.from({ length: GROUP_COUNT }, (_, g) => {
         const unlocked = isGroupUnlocked(progress, g);
         return (
-          <View key={g} style={{ marginBottom: 18 }}>
+          <View key={g} style={{ marginBottom: 22 }}>
             <Text style={st.groupTitle}>
-              {unlocked ? '' : '🔒 '}Groupe {g + 1} · {GROUP_TITLES[g]}
+              {unlocked ? '' : '🔒 '}
+              {GROUP_TITLES[g]}
             </Text>
             <View style={st.grid}>
               {lettersOfGroup(g).map((l) => (
@@ -69,13 +71,20 @@ export default function Alphabet({
                   key={l.id}
                   disabled={!unlocked}
                   onPress={() => setSel(l)}
-                  style={[st.cell, { borderColor: letterColor(progress, l, unlocked) }]}
+                  style={({ pressed }) => [
+                    st.cell,
+                    !unlocked && st.cellLocked,
+                    pressed && { transform: [{ scale: 0.95 }] },
+                  ]}
                 >
+                  <View
+                    style={[st.stateDot, { backgroundColor: stateColor(progress, l, unlocked) }]}
+                  />
                   <Text style={[st.cellGlyph, !unlocked && { color: C.locked }]}>
                     {l.U} {l.L}
                   </Text>
                   <Text style={st.cellSound}>
-                    {unlocked ? pron(l, dialect).r : '?'}
+                    {unlocked ? pron(l, dialect).r : '·'}
                   </Text>
                 </Pressable>
               ))}
@@ -131,13 +140,18 @@ export function LetterModal({
             {letter.U} {letter.L}
           </Text>
           <Text style={st.modalName}>
-            « {letter.nameHy} » ({letterName(letter, dialect)})
+            « {letter.nameHy} » · {letterName(letter, dialect)}
           </Text>
-          <View style={st.soundPill}>
+          <LinearGradient
+            colors={G.primary}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={st.soundPill}
+          >
             <Text style={st.soundPillTxt}>
               {p.rInitial ? `${p.rInitial} / ${p.r}` : p.r}
             </Text>
-          </View>
+          </LinearGradient>
           <Text style={st.hint}>{p.hint}</Text>
           {letter.tip && <Text style={st.tip}>💡 {letter.tip}</Text>}
           {example && (
@@ -150,17 +164,17 @@ export function LetterModal({
               </Text>
             </View>
           )}
-          <View style={{ flexDirection: 'row', gap: 10, marginTop: 18, alignSelf: 'stretch' }}>
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 20, alignSelf: 'stretch' }}>
             <View style={{ flex: 1 }}>
               <Button
                 label="🔊 Écouter"
-                kind="ghost"
+                kind="soft"
                 onPress={() => speakHy(letter.U, p.rInitial ?? p.r)}
               />
             </View>
             {onTrace && (
               <View style={{ flex: 1 }}>
-                <Button label="✍️ Tracer" kind="ghost" onPress={() => onTrace(letter)} />
+                <Button label="✍️ Tracer" kind="soft" onPress={() => onTrace(letter)} />
               </View>
             )}
           </View>
@@ -174,69 +188,97 @@ export function LetterModal({
 }
 
 const st = StyleSheet.create({
-  wrap: { padding: 18, paddingTop: 54, paddingBottom: 40 },
-  title: { fontSize: 28, fontWeight: '800', color: C.text },
-  subtitle: { fontSize: 14, color: C.textSoft, marginTop: 4, marginBottom: 12 },
-  legend: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 18 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  legendDot: { width: 10, height: 10, borderRadius: 5 },
-  legendTxt: { fontSize: 12, color: C.textSoft },
-  groupTitle: { fontSize: 14, fontWeight: '700', color: C.textSoft, marginBottom: 8 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  wrap: { padding: 18, paddingTop: 60, paddingBottom: 120 },
+  title: { fontSize: 28, fontFamily: F.uiX, color: C.ink },
+  subtitle: {
+    fontSize: 14,
+    fontFamily: F.ui,
+    color: C.inkSoft,
+    marginTop: 4,
+    marginBottom: 14,
+  },
+  legend: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginBottom: 22 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendDot: { width: 9, height: 9, borderRadius: 5 },
+  legendTxt: { fontSize: 12, fontFamily: F.uiSemi, color: C.inkSoft },
+  groupTitle: {
+    fontSize: 13,
+    fontFamily: F.uiX,
+    color: C.inkSoft,
+    marginBottom: 10,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   cell: {
     width: 76,
     backgroundColor: C.card,
-    borderRadius: 14,
-    borderWidth: 2,
-    paddingVertical: 10,
+    borderRadius: R.m,
+    paddingVertical: 12,
     alignItems: 'center',
+    ...SHADOW,
   },
-  cellGlyph: { fontSize: 20, fontWeight: 'normal', color: C.text },
-  cellSound: { fontSize: 12, color: C.textSoft, marginTop: 3 },
+  cellLocked: {
+    backgroundColor: C.bgDeep,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  stateDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  cellGlyph: { fontSize: 21, fontFamily: F.hy, color: C.ink },
+  cellSound: { fontSize: 11.5, fontFamily: F.uiSemi, color: C.inkSoft, marginTop: 3 },
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(30,20,10,0.5)',
+    backgroundColor: 'rgba(43,27,46,0.55)',
     justifyContent: 'center',
     padding: 24,
   },
   modal: {
     backgroundColor: C.card,
-    borderRadius: R + 6,
-    padding: 24,
+    borderRadius: R.xl,
+    padding: 26,
     alignItems: 'center',
+    ...SHADOW_STRONG,
   },
-  modalGlyph: { fontSize: 64, fontWeight: 'normal', color: C.text },
-  modalName: { fontSize: 15, color: C.textSoft, marginTop: 4 },
+  modalGlyph: { fontSize: 66, fontFamily: F.hyBold, color: C.ink, lineHeight: 84 },
+  modalName: { fontSize: 14, fontFamily: F.uiSemi, color: C.inkSoft, marginTop: 2 },
   soundPill: {
-    backgroundColor: C.primarySoft,
     borderRadius: 999,
-    paddingVertical: 6,
-    paddingHorizontal: 18,
-    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 22,
+    marginTop: 14,
   },
-  soundPillTxt: { fontSize: 20, fontWeight: '800', color: C.primary },
+  soundPillTxt: { fontSize: 20, fontFamily: F.uiX, color: C.white },
   hint: {
     fontSize: 14.5,
-    color: C.text,
+    fontFamily: F.ui,
+    color: C.ink,
     textAlign: 'center',
-    marginTop: 10,
+    marginTop: 12,
     lineHeight: 21,
   },
   tip: {
-    fontSize: 13.5,
-    color: C.textSoft,
+    fontSize: 13,
+    fontFamily: F.ui,
+    color: C.inkSoft,
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 19,
   },
   example: {
-    marginTop: 14,
+    marginTop: 16,
     alignItems: 'center',
-    backgroundColor: C.blueSoft,
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: C.tealSoft,
+    borderRadius: R.s,
+    padding: 14,
     alignSelf: 'stretch',
   },
-  exampleHy: { fontSize: 22, fontWeight: 'normal', color: C.text },
-  exampleTr: { fontSize: 13.5, color: C.textSoft, marginTop: 4 },
+  exampleHy: { fontSize: 22, fontFamily: F.hy, color: C.ink },
+  exampleTr: { fontSize: 13, fontFamily: F.uiSemi, color: C.teal, marginTop: 4 },
 });
