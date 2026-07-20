@@ -14,7 +14,8 @@ import { makeQuiz, Question } from '../lib/engine';
 import { speakHy } from '../lib/speech';
 import { Progress } from '../lib/store';
 import { Button, ProgressBar } from '../ui/components';
-import { C, F, G, R, SHADOW, SHADOW_STRONG } from '../ui/theme';
+import { Theme } from '../ui/theme';
+import { useTheme } from '../ui/ThemeContext';
 import QuizView from './QuizView';
 import TraceModal from './TraceModal';
 
@@ -35,6 +36,9 @@ export default function Lesson({
   onComplete: (score: number, total: number) => void;
   onQuit: () => void;
 }) {
+  const theme = useTheme();
+  const { C, F, G } = theme;
+  const st = useMemo(() => makeStyles(theme), [theme]);
   const letters = useMemo(() => lettersOfGroup(group), [group]);
   const words = useMemo(() => wordsOfGroup(group), [group]);
   const [phase, setPhase] = useState<Phase>('learn');
@@ -93,6 +97,7 @@ export default function Lesson({
           title={`Leçon ${group + 1} · À toi de lire !`}
           onQuit={onQuit}
           value={0.9}
+          theme={theme}
         />
         <ScrollView
           contentContainerStyle={{ padding: 18, paddingBottom: 48 }}
@@ -113,6 +118,7 @@ export default function Lesson({
               fr={w.fr}
               emoji={w.emoji}
               translit={transliterate(w.hy, dialect)}
+              theme={theme}
             />
           ))}
           <View style={{ marginTop: 18 }}>
@@ -127,6 +133,8 @@ export default function Lesson({
   const letter = letters[idx];
   const p = pron(letter, dialect);
   const isLast = idx === letters.length - 1;
+  const haloColors: readonly [string, string] =
+    theme.mode === 'dark' ? ['#3A2A28', '#4A2E28'] : ['#FFF3E4', '#FFE3D2'];
 
   return (
     <View style={st.wrap}>
@@ -134,6 +142,7 @@ export default function Lesson({
         title={`Leçon ${group + 1} · ${GROUP_TITLES[group]}`}
         onQuit={onQuit}
         value={(idx + 1) / (letters.length + 2)}
+        theme={theme}
       />
       <ScrollView
         contentContainerStyle={{ padding: 18, paddingBottom: 48 }}
@@ -145,7 +154,7 @@ export default function Lesson({
 
         <View style={st.letterCard}>
           <LinearGradient
-            colors={['#FFF3E4', '#FFE3D2']}
+            colors={haloColors}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={st.letterHalo}
@@ -211,11 +220,14 @@ function Header({
   title,
   value,
   onQuit,
+  theme,
 }: {
   title: string;
   value: number;
   onQuit: () => void;
+  theme: Theme;
 }) {
+  const st = useMemo(() => makeStyles(theme), [theme]);
   return (
     <View style={st.top}>
       <Pressable onPress={onQuit} hitSlop={12} style={st.quitBtn}>
@@ -236,12 +248,15 @@ function RevealWord({
   fr,
   emoji,
   translit,
+  theme,
 }: {
   hy: string;
   fr: string;
   emoji?: string;
   translit: string;
+  theme: Theme;
 }) {
+  const st = useMemo(() => makeStyles(theme), [theme]);
   const [revealed, setRevealed] = useState(false);
   return (
     <Pressable
@@ -254,137 +269,139 @@ function RevealWord({
       <Text style={st.wordHy}>
         {emoji} {hy}
       </Text>
-      <Text style={[st.wordAnswer, revealed && { color: C.grenat, fontFamily: F.uiBold }]}>
+      <Text style={[st.wordAnswer, revealed && { color: theme.C.grenat, fontFamily: theme.F.uiBold }]}>
         {revealed ? `${translit} — ${fr}` : 'Touche pour vérifier'}
       </Text>
     </Pressable>
   );
 }
 
-const st = StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: C.bg },
-  top: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: 18,
-    paddingTop: 58,
-    paddingBottom: 12,
-  },
-  quitBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: C.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...SHADOW,
-  },
-  quit: { fontSize: 15, color: C.inkSoft, fontFamily: F.uiX },
-  topTitle: { fontSize: 13.5, fontFamily: F.uiBold, color: C.inkSoft },
-  newLabel: {
-    fontSize: 11,
-    fontFamily: F.uiX,
-    color: C.grenat,
-    letterSpacing: 1.2,
-    marginBottom: 10,
-    textTransform: 'uppercase',
-  },
-  letterCard: {
-    backgroundColor: C.card,
-    borderRadius: R.xl,
-    padding: 22,
-    alignItems: 'center',
-    ...SHADOW,
-  },
-  letterHalo: {
-    alignSelf: 'stretch',
-    borderRadius: R.l,
-    alignItems: 'center',
-    paddingVertical: 22,
-  },
-  glyph: { fontSize: 88, fontFamily: F.hyBold, color: C.ink, lineHeight: 116 },
-  name: { fontSize: 14, fontFamily: F.uiSemi, color: C.inkSoft, marginTop: 14 },
-  soundPill: {
-    borderRadius: 999,
-    paddingVertical: 9,
-    paddingHorizontal: 26,
-    marginTop: 12,
-  },
-  soundPillTxt: { fontSize: 23, fontFamily: F.uiX, color: C.white },
-  hint: {
-    fontSize: 15,
-    fontFamily: F.ui,
-    color: C.ink,
-    textAlign: 'center',
-    marginTop: 14,
-    lineHeight: 22,
-    paddingHorizontal: 8,
-  },
-  tip: {
-    fontSize: 13,
-    fontFamily: F.ui,
-    color: C.inkSoft,
-    textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 19,
-    paddingHorizontal: 8,
-  },
-  navRow: { flexDirection: 'row', gap: 10, marginTop: 18 },
-  wordsIntro: {
-    fontSize: 15,
-    fontFamily: F.ui,
-    color: C.ink,
-    lineHeight: 23,
-    marginBottom: 16,
-  },
-  word: {
-    backgroundColor: C.card,
-    borderRadius: R.m,
-    padding: 16,
-    marginBottom: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    ...SHADOW,
-  },
-  wordHy: { fontSize: 23, fontFamily: F.hy, color: C.ink },
-  wordAnswer: {
-    fontSize: 13,
-    fontFamily: F.uiSemi,
-    color: C.inkSoft,
-    flexShrink: 1,
-    textAlign: 'right',
-    marginLeft: 12,
-  },
-  doneBadge: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...SHADOW_STRONG,
-  },
-  doneBadgeTxt: { fontSize: 52 },
-  doneTitle: {
-    fontSize: 26,
-    fontFamily: F.uiX,
-    color: C.ink,
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  doneScore: {
-    fontSize: 15,
-    fontFamily: F.uiBold,
-    color: C.grenat,
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  doneTxt: {
-    fontSize: 14,
-    fontFamily: F.ui,
-    color: C.inkSoft,
-    textAlign: 'center',
-    marginTop: 12,
-    lineHeight: 21,
-  },
-});
+function makeStyles({ C, F, R, SHADOW, SHADOW_STRONG }: Theme) {
+  return StyleSheet.create({
+    wrap: { flex: 1, backgroundColor: C.bg },
+    top: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      paddingHorizontal: 18,
+      paddingTop: 58,
+      paddingBottom: 12,
+    },
+    quitBtn: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      backgroundColor: C.card,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...SHADOW,
+    },
+    quit: { fontSize: 15, color: C.inkSoft, fontFamily: F.uiX },
+    topTitle: { fontSize: 13.5, fontFamily: F.uiBold, color: C.inkSoft },
+    newLabel: {
+      fontSize: 11,
+      fontFamily: F.uiX,
+      color: C.grenat,
+      letterSpacing: 1.2,
+      marginBottom: 10,
+      textTransform: 'uppercase',
+    },
+    letterCard: {
+      backgroundColor: C.card,
+      borderRadius: R.xl,
+      padding: 22,
+      alignItems: 'center',
+      ...SHADOW,
+    },
+    letterHalo: {
+      alignSelf: 'stretch',
+      borderRadius: R.l,
+      alignItems: 'center',
+      paddingVertical: 22,
+    },
+    glyph: { fontSize: 88, fontFamily: F.hyBold, color: C.ink, lineHeight: 116 },
+    name: { fontSize: 14, fontFamily: F.uiSemi, color: C.inkSoft, marginTop: 14 },
+    soundPill: {
+      borderRadius: 999,
+      paddingVertical: 9,
+      paddingHorizontal: 26,
+      marginTop: 12,
+    },
+    soundPillTxt: { fontSize: 23, fontFamily: F.uiX, color: C.white },
+    hint: {
+      fontSize: 15,
+      fontFamily: F.ui,
+      color: C.ink,
+      textAlign: 'center',
+      marginTop: 14,
+      lineHeight: 22,
+      paddingHorizontal: 8,
+    },
+    tip: {
+      fontSize: 13,
+      fontFamily: F.ui,
+      color: C.inkSoft,
+      textAlign: 'center',
+      marginTop: 8,
+      lineHeight: 19,
+      paddingHorizontal: 8,
+    },
+    navRow: { flexDirection: 'row', gap: 10, marginTop: 18 },
+    wordsIntro: {
+      fontSize: 15,
+      fontFamily: F.ui,
+      color: C.ink,
+      lineHeight: 23,
+      marginBottom: 16,
+    },
+    word: {
+      backgroundColor: C.card,
+      borderRadius: R.m,
+      padding: 16,
+      marginBottom: 10,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      ...SHADOW,
+    },
+    wordHy: { fontSize: 23, fontFamily: F.hy, color: C.ink },
+    wordAnswer: {
+      fontSize: 13,
+      fontFamily: F.uiSemi,
+      color: C.inkSoft,
+      flexShrink: 1,
+      textAlign: 'right',
+      marginLeft: 12,
+    },
+    doneBadge: {
+      width: 112,
+      height: 112,
+      borderRadius: 56,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...SHADOW_STRONG,
+    },
+    doneBadgeTxt: { fontSize: 52 },
+    doneTitle: {
+      fontSize: 26,
+      fontFamily: F.uiX,
+      color: C.ink,
+      textAlign: 'center',
+      marginTop: 20,
+    },
+    doneScore: {
+      fontSize: 15,
+      fontFamily: F.uiBold,
+      color: C.grenat,
+      textAlign: 'center',
+      marginTop: 8,
+    },
+    doneTxt: {
+      fontSize: 14,
+      fontFamily: F.ui,
+      color: C.inkSoft,
+      textAlign: 'center',
+      marginTop: 12,
+      lineHeight: 21,
+    },
+  });
+}

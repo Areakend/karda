@@ -16,7 +16,7 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Dialect, lettersOfGroup } from './src/data/alphabet';
-import { applyResult, makeQuiz, Question } from './src/lib/engine';
+import { acquiredCount, applyResult, makeQuiz, Question } from './src/lib/engine';
 import { disableDailyReminder, enableDailyReminder } from './src/lib/notifications';
 import {
   EMPTY_PROGRESS,
@@ -27,6 +27,7 @@ import {
   saveProgress,
   saveSettings,
   Settings as SettingsData,
+  snapshotToday,
   touchStreak,
 } from './src/lib/store';
 import Alphabet from './src/screens/Alphabet';
@@ -35,16 +36,19 @@ import Lesson from './src/screens/Lesson';
 import Onboarding from './src/screens/Onboarding';
 import QuizView from './src/screens/QuizView';
 import Settings from './src/screens/Settings';
+import Stats from './src/screens/Stats';
 import Words from './src/screens/Words';
 import { Button } from './src/ui/components';
-import { C, F, G, SHADOW_STRONG } from './src/ui/theme';
+import { Theme } from './src/ui/theme';
+import { ThemeProvider, useTheme } from './src/ui/ThemeContext';
 
 type Tab = 'home' | 'alphabet' | 'words' | 'settings';
 type Overlay =
   | { name: 'none' }
   | { name: 'lesson'; group: number }
   | { name: 'quiz' }
-  | { name: 'quizDone'; score: number; total: number };
+  | { name: 'quizDone'; score: number; total: number }
+  | { name: 'stats' };
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -83,7 +87,8 @@ export default function App() {
 
   function updateProgress(fn: (p: Progress) => Progress) {
     setProgress((prev) => {
-      const next = fn(prev);
+      const updated = fn(prev);
+      const next = snapshotToday(updated, acquiredCount(updated));
       saveProgress(next);
       return next;
     });
@@ -113,9 +118,60 @@ export default function App() {
     updateSettings({ dailyReminder: next });
   }
 
+  return (
+    <ThemeProvider preference={settings.themeMode}>
+      <AppBody
+        ready={ready}
+        fontsLoaded={!!fontsLoaded}
+        settings={settings}
+        progress={progress}
+        dialect={dialect}
+        tab={tab}
+        setTab={setTab}
+        overlay={overlay}
+        setOverlay={setOverlay}
+        updateProgress={updateProgress}
+        updateSettings={updateSettings}
+        onToggleReminder={handleToggleReminder}
+      />
+    </ThemeProvider>
+  );
+}
+
+function AppBody({
+  ready,
+  fontsLoaded,
+  settings,
+  progress,
+  dialect,
+  tab,
+  setTab,
+  overlay,
+  setOverlay,
+  updateProgress,
+  updateSettings,
+  onToggleReminder,
+}: {
+  ready: boolean;
+  fontsLoaded: boolean;
+  settings: SettingsData;
+  progress: Progress;
+  dialect: Dialect | null;
+  tab: Tab;
+  setTab: (t: Tab) => void;
+  overlay: Overlay;
+  setOverlay: (o: Overlay) => void;
+  updateProgress: (fn: (p: Progress) => Progress) => void;
+  updateSettings: (patch: Partial<SettingsData>) => void;
+  onToggleReminder: (next: boolean) => void;
+}) {
+  const theme = useTheme();
+  const { C, F, G, SHADOW_STRONG } = theme;
+  const st = useMemo(() => makeStyles(theme), [theme]);
+  const barStyle = theme.mode === 'dark' ? 'light' : 'dark';
+
   const freeQuiz = useMemo(
-    () =>
-      overlay.name === 'quiz' && dialect ? makeQuiz(progress, dialect, 8) : [],
+    () => (overlay.name === 'quiz' && dialect ? makeQuiz(progress, dialect, 8) : []),
     // Questions figées à l'ouverture du quiz
     [overlay.name, dialect]
   );
@@ -131,7 +187,7 @@ export default function App() {
   if (!dialect) {
     return (
       <>
-        <StatusBar style="dark" />
+        <StatusBar style={barStyle} />
         <Onboarding onChoose={(d) => updateSettings({ dialect: d })} />
       </>
     );
@@ -143,7 +199,7 @@ export default function App() {
   if (overlay.name === 'lesson') {
     return (
       <>
-        <StatusBar style="dark" />
+        <StatusBar style={barStyle} />
         <Lesson
           group={overlay.group}
           progress={progress}
@@ -179,7 +235,7 @@ export default function App() {
   if (overlay.name === 'quiz') {
     return (
       <>
-        <StatusBar style="dark" />
+        <StatusBar style={barStyle} />
         <QuizView
           questions={freeQuiz}
           dialect={dialect}
@@ -194,11 +250,20 @@ export default function App() {
     );
   }
 
+  if (overlay.name === 'stats') {
+    return (
+      <>
+        <StatusBar style={barStyle} />
+        <Stats progress={progress} onClose={() => setOverlay({ name: 'none' })} />
+      </>
+    );
+  }
+
   if (overlay.name === 'quizDone') {
     const pct = overlay.total > 0 ? overlay.score / overlay.total : 0;
     return (
       <View style={st.doneWrap}>
-        <StatusBar style="dark" />
+        <StatusBar style={barStyle} />
         <LinearGradient
           colors={G.hero}
           start={{ x: 0, y: 0 }}
@@ -234,13 +299,14 @@ export default function App() {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <StatusBar style="dark" />
+      <StatusBar style={barStyle} />
       <View style={{ flex: 1 }}>
         {tab === 'home' && (
           <Home
             progress={progress}
             onLesson={(g) => setOverlay({ name: 'lesson', group: g })}
             onQuiz={() => setOverlay({ name: 'quiz' })}
+            onStats={() => setOverlay({ name: 'stats' })}
           />
         )}
         {tab === 'alphabet' && <Alphabet progress={progress} dialect={dialect} />}
@@ -250,7 +316,10 @@ export default function App() {
             dialect={dialect}
             onDialect={(d) => updateSettings({ dialect: d })}
             dailyReminder={settings.dailyReminder}
-            onToggleReminder={handleToggleReminder}
+            onToggleReminder={onToggleReminder}
+            themeMode={settings.themeMode}
+            onThemeMode={(m) => updateSettings({ themeMode: m })}
+            onStats={() => setOverlay({ name: 'stats' })}
             onReset={() => {
               updateProgress(() => ({ ...EMPTY_PROGRESS }));
               setTab('home');
@@ -264,12 +333,14 @@ export default function App() {
           label="Accueil"
           active={tab === 'home'}
           onPress={() => setTab('home')}
+          theme={theme}
           render={(color) => <Ionicons name="home" size={21} color={color} />}
         />
         <TabBtn
           label="Alphabet"
           active={tab === 'alphabet'}
           onPress={() => setTab('alphabet')}
+          theme={theme}
           render={(color) => (
             <Text style={{ fontFamily: F.hyBold, fontSize: 17, color, lineHeight: 22 }}>
               Աա
@@ -280,12 +351,14 @@ export default function App() {
           label="Mots"
           active={tab === 'words'}
           onPress={() => setTab('words')}
+          theme={theme}
           render={(color) => <Ionicons name="book" size={21} color={color} />}
         />
         <TabBtn
           label="Réglages"
           active={tab === 'settings'}
           onPress={() => setTab('settings')}
+          theme={theme}
           render={(color) => <Ionicons name="settings-sharp" size={21} color={color} />}
         />
       </View>
@@ -298,83 +371,88 @@ function TabBtn({
   active,
   onPress,
   render,
+  theme,
 }: {
   label: string;
   active: boolean;
   onPress: () => void;
   render: (color: string) => React.ReactNode;
+  theme: Theme;
 }) {
-  const color = active ? C.grenat : C.inkSoft;
+  const st = useMemo(() => makeStyles(theme), [theme]);
+  const color = active ? theme.C.grenat : theme.C.inkSoft;
   return (
     <Pressable onPress={onPress} style={st.tabBtn}>
-      <View style={[st.tabIconWrap, active && { backgroundColor: C.grenatSoft }]}>
+      <View style={[st.tabIconWrap, active && { backgroundColor: theme.C.grenatSoft }]}>
         {render(color)}
       </View>
-      <Text style={[st.tabLabel, { color }, active && { fontFamily: F.uiX }]}>
+      <Text style={[st.tabLabel, { color }, active && { fontFamily: theme.F.uiX }]}>
         {label}
       </Text>
     </Pressable>
   );
 }
 
-const st = StyleSheet.create({
-  splash: {
-    flex: 1,
-    backgroundColor: C.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  splashGlyph: { fontSize: 84, color: C.coral },
-  tabbar: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: 18,
-    flexDirection: 'row',
-    backgroundColor: C.card,
-    borderRadius: 999,
-    paddingVertical: 8,
-    paddingHorizontal: 6,
-    ...SHADOW_STRONG,
-  },
-  tabBtn: { flex: 1, alignItems: 'center', gap: 1 },
-  tabIconWrap: {
-    width: 46,
-    height: 30,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tabLabel: { fontSize: 10, fontFamily: F.uiBold },
-  doneWrap: {
-    flex: 1,
-    backgroundColor: C.bg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  doneBadge: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...SHADOW_STRONG,
-  },
-  doneBadgeTxt: { fontSize: 52 },
-  doneTitle: {
-    fontSize: 52,
-    fontFamily: F.uiX,
-    color: C.ink,
-    marginTop: 20,
-  },
-  doneTotal: { fontSize: 24, color: C.inkSoft, fontFamily: F.uiBold },
-  doneTxt: {
-    fontSize: 15,
-    color: C.inkSoft,
-    textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 22,
-    fontFamily: F.ui,
-  },
-});
+function makeStyles({ C, F, SHADOW_STRONG }: Theme) {
+  return StyleSheet.create({
+    splash: {
+      flex: 1,
+      backgroundColor: C.bg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    splashGlyph: { fontSize: 84, color: C.coral },
+    tabbar: {
+      position: 'absolute',
+      left: 16,
+      right: 16,
+      bottom: 18,
+      flexDirection: 'row',
+      backgroundColor: C.card,
+      borderRadius: 999,
+      paddingVertical: 8,
+      paddingHorizontal: 6,
+      ...SHADOW_STRONG,
+    },
+    tabBtn: { flex: 1, alignItems: 'center', gap: 1 },
+    tabIconWrap: {
+      width: 46,
+      height: 30,
+      borderRadius: 999,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    tabLabel: { fontSize: 10, fontFamily: F.uiBold },
+    doneWrap: {
+      flex: 1,
+      backgroundColor: C.bg,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 32,
+    },
+    doneBadge: {
+      width: 112,
+      height: 112,
+      borderRadius: 56,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...SHADOW_STRONG,
+    },
+    doneBadgeTxt: { fontSize: 52 },
+    doneTitle: {
+      fontSize: 52,
+      fontFamily: F.uiX,
+      color: C.ink,
+      marginTop: 20,
+    },
+    doneTotal: { fontSize: 24, color: C.inkSoft, fontFamily: F.uiBold },
+    doneTxt: {
+      fontSize: 15,
+      color: C.inkSoft,
+      textAlign: 'center',
+      marginTop: 8,
+      lineHeight: 22,
+      fontFamily: F.ui,
+    },
+  });
+}

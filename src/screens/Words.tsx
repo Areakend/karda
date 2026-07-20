@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Dialect, transliterate, transliteratePhrase } from '../data/alphabet';
 import { phrasesUpToGroup } from '../data/phrases';
 import { wordsUpToGroup } from '../data/words';
 import { speakHy } from '../lib/speech';
 import { Progress } from '../lib/store';
-import { C, F, R, SHADOW } from '../ui/theme';
+import { Theme } from '../ui/theme';
+import { useTheme } from '../ui/ThemeContext';
 
 /**
  * Bibliothèque de lecture : tous les mots et phrases déjà lisibles avec les
@@ -18,6 +19,8 @@ export default function Words({
   progress: Progress;
   dialect: Dialect;
 }) {
+  const theme = useTheme();
+  const st = useMemo(() => makeStyles(theme), [theme]);
   const maxGroup = Math.max(-1, ...progress.completed);
   const words = wordsUpToGroup(maxGroup);
   const phrases = phrasesUpToGroup(maxGroup);
@@ -91,50 +94,52 @@ export default function Words({
   );
 }
 
-const st = StyleSheet.create({
-  wrap: { padding: 18, paddingTop: 60, paddingBottom: 120 },
-  title: { fontSize: 28, fontFamily: F.uiX, color: C.ink },
-  subtitle: {
-    fontSize: 14,
-    fontFamily: F.ui,
-    color: C.inkSoft,
-    marginTop: 4,
-    marginBottom: 18,
-    lineHeight: 20,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontFamily: F.uiX,
-    color: C.ink,
-    marginTop: 26,
-    marginBottom: 4,
-  },
-  word: {
-    backgroundColor: C.card,
-    borderRadius: R.m,
-    padding: 16,
-    marginBottom: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    ...SHADOW,
-  },
-  wordHy: { fontSize: 23, fontFamily: F.hy, color: C.ink },
-  wordAnswer: {
-    fontSize: 13,
-    fontFamily: F.uiSemi,
-    color: C.inkSoft,
-    flexShrink: 1,
-    textAlign: 'right',
-    marginLeft: 12,
-  },
-  wordAnswerOpen: { color: C.grenat, fontFamily: F.uiBold },
-  phrase: {
-    backgroundColor: C.tealSoft,
-    borderRadius: R.m,
-    padding: 16,
-    marginBottom: 10,
-  },
-  phraseHy: { fontSize: 21, fontFamily: F.hy, color: C.ink, marginBottom: 6, lineHeight: 30 },
-  phraseOpen: { color: C.teal, fontFamily: F.uiBold },
-});
+function makeStyles({ C, F, R, SHADOW }: Theme) {
+  return StyleSheet.create({
+    wrap: { padding: 18, paddingTop: 60, paddingBottom: 120 },
+    title: { fontSize: 28, fontFamily: F.uiX, color: C.ink },
+    subtitle: {
+      fontSize: 14,
+      fontFamily: F.ui,
+      color: C.inkSoft,
+      marginTop: 4,
+      marginBottom: 18,
+      lineHeight: 20,
+    },
+    sectionTitle: {
+      fontSize: 20,
+      fontFamily: F.uiX,
+      color: C.ink,
+      marginTop: 26,
+      marginBottom: 4,
+    },
+    word: {
+      backgroundColor: C.card,
+      borderRadius: R.m,
+      padding: 16,
+      marginBottom: 10,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      ...SHADOW,
+    },
+    wordHy: { fontSize: 23, fontFamily: F.hy, color: C.ink },
+    wordAnswer: {
+      fontSize: 13,
+      fontFamily: F.uiSemi,
+      color: C.inkSoft,
+      flexShrink: 1,
+      textAlign: 'right',
+      marginLeft: 12,
+    },
+    wordAnswerOpen: { color: C.grenat, fontFamily: F.uiBold },
+    phrase: {
+      backgroundColor: C.tealSoft,
+      borderRadius: R.m,
+      padding: 16,
+      marginBottom: 10,
+    },
+    phraseHy: { fontSize: 21, fontFamily: F.hy, color: C.ink, marginBottom: 6, lineHeight: 30 },
+    phraseOpen: { color: C.teal, fontFamily: F.uiBold },
+  });
+}

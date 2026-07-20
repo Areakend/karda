@@ -1,11 +1,13 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Dialect, pron, transliterate } from '../data/alphabet';
 import { Question } from '../lib/engine';
+import { playFeedback } from '../lib/feedback';
 import { speakHy } from '../lib/speech';
 import { Button, ProgressBar } from '../ui/components';
-import { C, F, G, R, SHADOW } from '../ui/theme';
+import { Theme } from '../ui/theme';
+import { useTheme } from '../ui/ThemeContext';
 
 /**
  * Déroule une série de questions avec feedback immédiat.
@@ -24,6 +26,9 @@ export default function QuizView({
   onComplete: (score: number) => void;
   onQuit: () => void;
 }) {
+  const theme = useTheme();
+  const { C, G } = theme;
+  const st = useMemo(() => makeStyles(theme), [theme]);
   const [idx, setIdx] = useState(0);
   const [picked, setPicked] = useState<string | null>(null);
   const [score, setScore] = useState(0);
@@ -67,6 +72,7 @@ export default function QuizView({
     setPicked(key);
     const ok = key === correctKey;
     if (ok) setScore((s) => s + 1);
+    playFeedback(ok);
     onAnswer(q, ok);
   }
 
@@ -212,7 +218,8 @@ export default function QuizView({
   );
 }
 
-const st = StyleSheet.create({
+function makeStyles({ C, F, R, SHADOW }: Theme) {
+  return StyleSheet.create({
   wrap: { flex: 1, backgroundColor: C.bg },
   top: {
     flexDirection: 'row',
@@ -297,4 +304,5 @@ const st = StyleSheet.create({
     marginTop: 6,
     lineHeight: 20,
   },
-});
+  });
+}

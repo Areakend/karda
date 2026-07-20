@@ -7,13 +7,18 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "icon": "./assets/icon.png",
-    "platforms": ["ios", "android", "web"],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "backgroundColor": "#FBF5EC",
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F2634E"
-      }
+      },
+      "package": "com.areakend.karda"
     },
     "web": {
       "bundler": "metro",
@@ -29,7 +34,8 @@
           "resizeMode": "contain",
           "backgroundColor": "#FBF5EC"
         }
-      ]
+      ],
+      "expo-audio"
     ]
   }
 }

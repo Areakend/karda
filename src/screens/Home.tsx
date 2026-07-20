@@ -1,21 +1,27 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { GROUP_COUNT, GROUP_TITLES, LETTERS, lettersOfGroup } from '../data/alphabet';
 import { acquiredCount, MASTERY, suggest, Suggestion } from '../lib/engine';
 import { Progress } from '../lib/store';
 import { Button, Card, Chip, Ring } from '../ui/components';
-import { C, F, G, R, SHADOW } from '../ui/theme';
+import { Theme } from '../ui/theme';
+import { useTheme } from '../ui/ThemeContext';
 
 export default function Home({
   progress,
   onLesson,
   onQuiz,
+  onStats,
 }: {
   progress: Progress;
   onLesson: (group: number) => void;
   onQuiz: () => void;
+  onStats: () => void;
 }) {
+  const theme = useTheme();
+  const { C, F, G } = theme;
+  const st = useMemo(() => makeStyles(theme), [theme]);
   const acquired = acquiredCount(progress);
   const total = LETTERS.length;
   const s: Suggestion = suggest(progress);
@@ -40,10 +46,12 @@ export default function Home({
             <Chip tone="glass" label={`⭐ ${progress.xp} XP`} />
           </View>
         </View>
-        <Ring size={92} stroke={9} value={acquired / total}>
-          <Text style={st.ringCount}>{acquired}</Text>
-          <Text style={st.ringTotal}>/ {total}</Text>
-        </Ring>
+        <Pressable onPress={onStats} hitSlop={8}>
+          <Ring size={92} stroke={9} value={acquired / total}>
+            <Text style={st.ringCount}>{acquired}</Text>
+            <Text style={st.ringTotal}>/ {total}</Text>
+          </Ring>
+        </Pressable>
       </LinearGradient>
 
       {/* ——— Suggestion ——— */}
@@ -146,108 +154,110 @@ export default function Home({
   );
 }
 
-const st = StyleSheet.create({
-  wrap: { padding: 18, paddingTop: 60, paddingBottom: 120 },
-  hero: {
-    borderRadius: R.xl,
-    padding: 22,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    overflow: 'hidden',
-    ...SHADOW,
-  },
-  heroWatermark: {
-    position: 'absolute',
-    right: -18,
-    top: -38,
-    fontSize: 190,
-    fontFamily: F.hyBold,
-    color: 'rgba(255,255,255,0.10)',
-  },
-  heroHello: { fontSize: 34, fontFamily: F.hyBold, color: C.white },
-  heroSub: {
-    fontSize: 13.5,
-    fontFamily: F.uiSemi,
-    color: 'rgba(255,255,255,0.85)',
-    marginTop: 2,
-  },
-  heroChips: { flexDirection: 'row', gap: 8, marginTop: 12, flexWrap: 'wrap' },
-  ringCount: { fontSize: 26, fontFamily: F.uiX, color: C.white, lineHeight: 30 },
-  ringTotal: { fontSize: 11, fontFamily: F.uiBold, color: 'rgba(255,255,255,0.8)' },
-  eyebrow: {
-    fontSize: 11,
-    fontFamily: F.uiX,
-    color: C.grenat,
-    letterSpacing: 1.2,
-  },
-  suggestTitle: { fontSize: 19, fontFamily: F.uiX, color: C.ink, marginTop: 8 },
-  suggestReason: {
-    fontSize: 14,
-    fontFamily: F.ui,
-    color: C.inkSoft,
-    marginTop: 4,
-    lineHeight: 20,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontFamily: F.uiX,
-    color: C.ink,
-    marginTop: 28,
-    marginBottom: 14,
-  },
-  path: {},
-  pathRow: { flexDirection: 'row', gap: 14 },
-  nodeCol: { alignItems: 'center', width: 44 },
-  node: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: C.card,
-  },
-  nodeNext: {
-    borderWidth: 2.5,
-    borderColor: C.coral,
-    ...SHADOW,
-  },
-  nodeLocked: {
-    borderWidth: 1.5,
-    borderColor: C.line,
-    backgroundColor: C.bgDeep,
-  },
-  nodeTxt: { fontSize: 16, fontFamily: F.uiX, color: C.coral },
-  nodeTxtDone: { fontSize: 18, fontFamily: F.uiX, color: C.white },
-  connector: { width: 3, flex: 1, borderRadius: 2, marginVertical: 4, minHeight: 18 },
-  step: {
-    flex: 1,
-    backgroundColor: C.card,
-    borderRadius: R.m,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    marginBottom: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    ...SHADOW,
-  },
-  stepNext: {
-    borderWidth: 2,
-    borderColor: C.coral,
-  },
-  stepTitle: { fontSize: 15, fontFamily: F.uiBold, color: C.ink },
-  stepGlyphs: {
-    fontSize: 15,
-    fontFamily: F.hy,
-    color: C.inkSoft,
-    marginTop: 3,
-  },
-  stepMeta: {
-    fontSize: 11.5,
-    fontFamily: F.uiSemi,
-    color: C.success,
-    marginTop: 3,
-  },
-  stepArrow: { fontSize: 20, fontFamily: F.uiX, color: C.inkSoft },
-});
+function makeStyles({ C, F, R, SHADOW }: Theme) {
+  return StyleSheet.create({
+    wrap: { padding: 18, paddingTop: 60, paddingBottom: 120 },
+    hero: {
+      borderRadius: R.xl,
+      padding: 22,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 16,
+      overflow: 'hidden',
+      ...SHADOW,
+    },
+    heroWatermark: {
+      position: 'absolute',
+      right: -18,
+      top: -38,
+      fontSize: 190,
+      fontFamily: F.hyBold,
+      color: 'rgba(255,255,255,0.10)',
+    },
+    heroHello: { fontSize: 34, fontFamily: F.hyBold, color: C.white },
+    heroSub: {
+      fontSize: 13.5,
+      fontFamily: F.uiSemi,
+      color: 'rgba(255,255,255,0.85)',
+      marginTop: 2,
+    },
+    heroChips: { flexDirection: 'row', gap: 8, marginTop: 12, flexWrap: 'wrap' },
+    ringCount: { fontSize: 26, fontFamily: F.uiX, color: C.white, lineHeight: 30 },
+    ringTotal: { fontSize: 11, fontFamily: F.uiBold, color: 'rgba(255,255,255,0.8)' },
+    eyebrow: {
+      fontSize: 11,
+      fontFamily: F.uiX,
+      color: C.grenat,
+      letterSpacing: 1.2,
+    },
+    suggestTitle: { fontSize: 19, fontFamily: F.uiX, color: C.ink, marginTop: 8 },
+    suggestReason: {
+      fontSize: 14,
+      fontFamily: F.ui,
+      color: C.inkSoft,
+      marginTop: 4,
+      lineHeight: 20,
+    },
+    sectionTitle: {
+      fontSize: 20,
+      fontFamily: F.uiX,
+      color: C.ink,
+      marginTop: 28,
+      marginBottom: 14,
+    },
+    path: {},
+    pathRow: { flexDirection: 'row', gap: 14 },
+    nodeCol: { alignItems: 'center', width: 44 },
+    node: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: C.card,
+    },
+    nodeNext: {
+      borderWidth: 2.5,
+      borderColor: C.coral,
+      ...SHADOW,
+    },
+    nodeLocked: {
+      borderWidth: 1.5,
+      borderColor: C.line,
+      backgroundColor: C.bgDeep,
+    },
+    nodeTxt: { fontSize: 16, fontFamily: F.uiX, color: C.coral },
+    nodeTxtDone: { fontSize: 18, fontFamily: F.uiX, color: C.white },
+    connector: { width: 3, flex: 1, borderRadius: 2, marginVertical: 4, minHeight: 18 },
+    step: {
+      flex: 1,
+      backgroundColor: C.card,
+      borderRadius: R.m,
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      marginBottom: 14,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      ...SHADOW,
+    },
+    stepNext: {
+      borderWidth: 2,
+      borderColor: C.coral,
+    },
+    stepTitle: { fontSize: 15, fontFamily: F.uiBold, color: C.ink },
+    stepGlyphs: {
+      fontSize: 15,
+      fontFamily: F.hy,
+      color: C.inkSoft,
+      marginTop: 3,
+    },
+    stepMeta: {
+      fontSize: 11.5,
+      fontFamily: F.uiSemi,
+      color: C.success,
+      marginTop: 3,
+    },
+    stepArrow: { fontSize: 20, fontFamily: F.uiX, color: C.inkSoft },
+  });
+}

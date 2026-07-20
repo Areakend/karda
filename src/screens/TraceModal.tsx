@@ -12,7 +12,8 @@ import Svg, { Path } from 'react-native-svg';
 import { Dialect, Letter, pron } from '../data/alphabet';
 import { speakHy } from '../lib/speech';
 import { Button } from '../ui/components';
-import { C, F, R, SHADOW_STRONG } from '../ui/theme';
+import { Theme } from '../ui/theme';
+import { useTheme } from '../ui/ThemeContext';
 
 const CANVAS = 260;
 
@@ -30,6 +31,9 @@ export default function TraceModal({
   dialect: Dialect;
   onClose: () => void;
 }) {
+  const theme = useTheme();
+  const { C } = theme;
+  const st = useMemo(() => makeStyles(theme), [theme]);
   const [paths, setPaths] = useState<string[]>([]);
   const current = useRef<string>('');
   const [, forceRender] = useState(0);
@@ -122,47 +126,49 @@ export default function TraceModal({
   );
 }
 
-const st = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(43,27,46,0.55)',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  modal: {
-    backgroundColor: C.card,
-    borderRadius: R.xl,
-    padding: 26,
-    alignItems: 'center',
-    ...SHADOW_STRONG,
-  },
-  title: { fontSize: 18, fontFamily: F.uiX, color: C.ink },
-  sound: { fontSize: 15, color: C.grenat, fontFamily: F.uiBold, marginTop: 4 },
-  canvasWrap: {
-    width: CANVAS,
-    height: CANVAS,
-    marginTop: 18,
-    borderRadius: R.l,
-    backgroundColor: C.bgDeep,
-    borderWidth: 2,
-    borderColor: C.line,
-    borderStyle: 'dashed',
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  guide: {
-    position: 'absolute',
-    fontSize: 190,
-    lineHeight: 250,
-    fontFamily: F.hy,
-    color: '#E4D5C3',
-  },
-  hint: {
-    fontSize: 12.5,
-    fontFamily: F.ui,
-    color: C.inkSoft,
-    textAlign: 'center',
-    marginTop: 14,
-  },
-});
+function makeStyles({ C, F, R, SHADOW_STRONG }: Theme) {
+  return StyleSheet.create({
+    backdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(43,27,46,0.55)',
+      justifyContent: 'center',
+      padding: 24,
+    },
+    modal: {
+      backgroundColor: C.card,
+      borderRadius: R.xl,
+      padding: 26,
+      alignItems: 'center',
+      ...SHADOW_STRONG,
+    },
+    title: { fontSize: 18, fontFamily: F.uiX, color: C.ink },
+    sound: { fontSize: 15, color: C.grenat, fontFamily: F.uiBold, marginTop: 4 },
+    canvasWrap: {
+      width: CANVAS,
+      height: CANVAS,
+      marginTop: 18,
+      borderRadius: R.l,
+      backgroundColor: C.bgDeep,
+      borderWidth: 2,
+      borderColor: C.line,
+      borderStyle: 'dashed',
+      overflow: 'hidden',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    guide: {
+      position: 'absolute',
+      fontSize: 190,
+      lineHeight: 250,
+      fontFamily: F.hy,
+      color: C.line,
+    },
+    hint: {
+      fontSize: 12.5,
+      fontFamily: F.ui,
+      color: C.inkSoft,
+      textAlign: 'center',
+      marginTop: 14,
+    },
+  });
+}

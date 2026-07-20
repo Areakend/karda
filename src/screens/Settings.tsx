@@ -1,27 +1,46 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { Dialect } from '../data/alphabet';
 import { Button, Card } from '../ui/components';
-import { C, F } from '../ui/theme';
+import { Theme } from '../ui/theme';
+import { ThemePreference, useTheme } from '../ui/ThemeContext';
 
 export default function Settings({
   dialect,
   onDialect,
   dailyReminder,
   onToggleReminder,
+  themeMode,
+  onThemeMode,
+  onStats,
   onReset,
 }: {
   dialect: Dialect;
   onDialect: (d: Dialect) => void;
   dailyReminder: boolean;
   onToggleReminder: (next: boolean) => void;
+  themeMode: ThemePreference;
+  onThemeMode: (m: ThemePreference) => void;
+  onStats: () => void;
   onReset: () => void;
 }) {
+  const theme = useTheme();
+  const { C } = theme;
+  const st = useMemo(() => makeStyles(theme), [theme]);
   const [confirming, setConfirming] = useState(false);
 
   return (
     <ScrollView contentContainerStyle={st.wrap} showsVerticalScrollIndicator={false}>
       <Text style={st.title}>Réglages</Text>
+
+      <Text style={st.section}>Apparence</Text>
+      <Card>
+        <View style={st.segment}>
+          <Seg theme={theme} label="Système" active={themeMode === 'system'} onPress={() => onThemeMode('system')} />
+          <Seg theme={theme} label="Clair" active={themeMode === 'light'} onPress={() => onThemeMode('light')} />
+          <Seg theme={theme} label="Sombre" active={themeMode === 'dark'} onPress={() => onThemeMode('dark')} />
+        </View>
+      </Card>
 
       <Text style={st.section}>Prononciation</Text>
       <Card>
@@ -31,12 +50,14 @@ export default function Settings({
         </Text>
         <View style={st.segment}>
           <Seg
+            theme={theme}
             label="Occidental"
             sub="diaspora"
             active={dialect === 'west'}
             onPress={() => onDialect('west')}
           />
           <Seg
+            theme={theme}
             label="Oriental"
             sub="Arménie"
             active={dialect === 'east'}
@@ -60,6 +81,12 @@ export default function Settings({
             trackColor={{ true: C.coral }}
           />
         </View>
+      </Card>
+
+      <Text style={st.section}>Progression</Text>
+      <Card>
+        <Text style={st.desc}>Précision, série, lettres maîtrisées dans le temps.</Text>
+        <Button label="📊 Voir mes statistiques" kind="soft" onPress={onStats} />
       </Card>
 
       <Text style={st.section}>Données</Text>
@@ -95,60 +122,65 @@ function Seg({
   sub,
   active,
   onPress,
+  theme,
 }: {
   label: string;
-  sub: string;
+  sub?: string;
   active: boolean;
   onPress: () => void;
+  theme: Theme;
 }) {
+  const st = useMemo(() => makeStyles(theme), [theme]);
   return (
     <Pressable
       onPress={onPress}
-      style={[st.seg, active && { backgroundColor: C.grenat, borderColor: C.grenat }]}
+      style={[st.seg, active && { backgroundColor: theme.C.grenat, borderColor: theme.C.grenat }]}
     >
-      <Text style={[st.segLabel, active && { color: C.white }]}>{label}</Text>
-      <Text style={[st.segSub, active && { color: '#FBD9CB' }]}>{sub}</Text>
+      <Text style={[st.segLabel, active && { color: theme.C.white }]}>{label}</Text>
+      {sub && <Text style={[st.segSub, active && { color: '#FBD9CB' }]}>{sub}</Text>}
     </Pressable>
   );
 }
 
-const st = StyleSheet.create({
-  wrap: { padding: 18, paddingTop: 60, paddingBottom: 120 },
-  title: { fontSize: 28, fontFamily: F.uiX, color: C.ink },
-  section: {
-    fontSize: 12.5,
-    fontFamily: F.uiX,
-    color: C.inkSoft,
-    marginTop: 24,
-    marginBottom: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  desc: {
-    fontSize: 13.5,
-    fontFamily: F.ui,
-    color: C.inkSoft,
-    lineHeight: 19,
-    marginBottom: 14,
-  },
-  rowBetween: { flexDirection: 'row', alignItems: 'center' },
-  segment: { flexDirection: 'row', gap: 10 },
-  seg: {
-    flex: 1,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: C.line,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  segLabel: { fontSize: 15, fontFamily: F.uiX, color: C.ink },
-  segSub: { fontSize: 11, fontFamily: F.uiSemi, color: C.inkSoft, marginTop: 2 },
-  about: {
-    fontSize: 12.5,
-    fontFamily: F.ui,
-    color: C.inkSoft,
-    textAlign: 'center',
-    marginTop: 34,
-    lineHeight: 19,
-  },
-});
+function makeStyles({ C, F }: Theme) {
+  return StyleSheet.create({
+    wrap: { padding: 18, paddingTop: 60, paddingBottom: 120 },
+    title: { fontSize: 28, fontFamily: F.uiX, color: C.ink },
+    section: {
+      fontSize: 12.5,
+      fontFamily: F.uiX,
+      color: C.inkSoft,
+      marginTop: 24,
+      marginBottom: 10,
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+    },
+    desc: {
+      fontSize: 13.5,
+      fontFamily: F.ui,
+      color: C.inkSoft,
+      lineHeight: 19,
+      marginBottom: 14,
+    },
+    rowBetween: { flexDirection: 'row', alignItems: 'center' },
+    segment: { flexDirection: 'row', gap: 10 },
+    seg: {
+      flex: 1,
+      borderRadius: 14,
+      borderWidth: 1.5,
+      borderColor: C.line,
+      paddingVertical: 12,
+      alignItems: 'center',
+    },
+    segLabel: { fontSize: 15, fontFamily: F.uiX, color: C.ink },
+    segSub: { fontSize: 11, fontFamily: F.uiSemi, color: C.inkSoft, marginTop: 2 },
+    about: {
+      fontSize: 12.5,
+      fontFamily: F.ui,
+      color: C.inkSoft,
+      textAlign: 'center',
+      marginTop: 34,
+      lineHeight: 19,
+    },
+  });
+}
