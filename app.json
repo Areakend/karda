@@ -35,7 +35,8 @@
           "backgroundColor": "#FBF5EC"
         }
       ],
-      "expo-audio"
+      "expo-audio",
+      "expo-asset"
     ]
   }
 }
