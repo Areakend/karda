@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -45,6 +46,8 @@ type Overlay =
   | { name: 'quiz' }
   | { name: 'quizDone'; score: number; total: number };
 
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
 export default function App() {
   const [fontsLoaded] = useFonts({
     NotoSerifArmenian_500Medium,
@@ -71,6 +74,12 @@ export default function App() {
       setReady(true);
     })();
   }, []);
+
+  useEffect(() => {
+    if (ready && fontsLoaded) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [ready, fontsLoaded]);
 
   function updateProgress(fn: (p: Progress) => Progress) {
     setProgress((prev) => {
