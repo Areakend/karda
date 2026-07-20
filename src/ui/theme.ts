@@ -53,27 +53,27 @@ const LIGHT_COLORS: Colors = {
 };
 
 const DARK_COLORS: Colors = {
-  bg: '#1C1520', // nuit d'encre
-  bgDeep: '#130E17',
-  card: '#2B2130',
-  ink: '#F6EEE6', // papier à la bougie
-  inkSoft: '#B7A6B4',
-  line: '#3D2F44',
+  bg: '#17101B', // nuit d'encre, plus profonde pour mieux détacher les cartes
+  bgDeep: '#0F0A12',
+  card: '#332739', // net cran au-dessus du fond, contrairement à l'ancienne version trop proche
+  ink: '#FBF4EE', // papier à la bougie, plus clair pour une meilleure lisibilité
+  inkSoft: '#C9B9C6',
+  line: '#4E3C55',
   apricot: '#FFB27A',
-  coral: '#FF8266',
-  grenat: '#FF6E86',
-  grenatDeep: '#FFD3DC',
-  gold: '#F0C468',
-  teal: '#57D2C2',
-  apricotSoft: '#3A2A22',
-  grenatSoft: '#3B2028',
-  tealSoft: '#17322E',
-  goldSoft: '#392F1A',
-  success: '#6BCB93',
-  successSoft: '#1E3327',
-  error: '#FF7A7A',
-  errorSoft: '#3A2020',
-  locked: '#463A4C',
+  coral: '#FF8B70',
+  grenat: '#FF7690',
+  grenatDeep: '#FFD9E1',
+  gold: '#F3C871',
+  teal: '#5FDAC9',
+  apricotSoft: '#432E22',
+  grenatSoft: '#472731',
+  tealSoft: '#193B36',
+  goldSoft: '#413419',
+  success: '#74D69C',
+  successSoft: '#20392C',
+  error: '#FF8A8A',
+  errorSoft: '#432525',
+  locked: '#5A4A60',
   white: '#FFFFFF',
 };
 

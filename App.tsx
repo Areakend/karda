@@ -16,6 +16,7 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Dialect, lettersOfGroup } from './src/data/alphabet';
+import { bonusLessonById } from './src/data/bonusLessons';
 import { acquiredCount, applyResult, makeQuiz, Question } from './src/lib/engine';
 import { disableDailyReminder, enableDailyReminder } from './src/lib/notifications';
 import {
@@ -31,6 +32,7 @@ import {
   touchStreak,
 } from './src/lib/store';
 import Alphabet from './src/screens/Alphabet';
+import BonusLesson from './src/screens/BonusLesson';
 import Home from './src/screens/Home';
 import Lesson from './src/screens/Lesson';
 import Onboarding from './src/screens/Onboarding';
@@ -46,6 +48,7 @@ type Tab = 'home' | 'alphabet' | 'words' | 'settings';
 type Overlay =
   | { name: 'none' }
   | { name: 'lesson'; group: number }
+  | { name: 'bonus'; id: number }
   | { name: 'quiz' }
   | { name: 'quizDone'; score: number; total: number }
   | { name: 'stats' };
@@ -232,6 +235,40 @@ function AppBody({
     );
   }
 
+  if (overlay.name === 'bonus') {
+    const lesson = bonusLessonById(overlay.id);
+    if (!lesson) {
+      setOverlay({ name: 'none' });
+      return null;
+    }
+    return (
+      <>
+        <StatusBar style={barStyle} />
+        <BonusLesson
+          lesson={lesson}
+          dialect={dialect}
+          onAnswer={onAnswer}
+          onComplete={() => {
+            const id = lesson.id;
+            updateProgress((p) => {
+              const bonusCompleted = p.bonusCompleted.includes(id)
+                ? p.bonusCompleted
+                : [...p.bonusCompleted, id];
+              return touchStreak({
+                ...p,
+                bonusCompleted,
+                xp: p.xp + (p.bonusCompleted.includes(id) ? 10 : 30),
+              });
+            });
+            setOverlay({ name: 'none' });
+            setTab('home');
+          }}
+          onQuit={() => setOverlay({ name: 'none' })}
+        />
+      </>
+    );
+  }
+
   if (overlay.name === 'quiz') {
     return (
       <>
@@ -305,6 +342,7 @@ function AppBody({
           <Home
             progress={progress}
             onLesson={(g) => setOverlay({ name: 'lesson', group: g })}
+            onBonus={(id) => setOverlay({ name: 'bonus', id })}
             onQuiz={() => setOverlay({ name: 'quiz' })}
             onStats={() => setOverlay({ name: 'stats' })}
           />

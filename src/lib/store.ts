@@ -18,6 +18,8 @@ export interface Progress {
   ease: Record<string, number>;
   /** Groupes dont la leçon a été terminée */
   completed: number[];
+  /** Leçons bonus (mots + phrases, après les 39 lettres) terminées */
+  bonusCompleted: number[];
   xp: number;
   streak: number;
   bestStreak: number;
@@ -49,6 +51,7 @@ export const EMPTY_PROGRESS: Progress = {
   interval: {},
   ease: {},
   completed: [],
+  bonusCompleted: [],
   xp: 0,
   streak: 0,
   bestStreak: 0,

@@ -2,7 +2,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { GROUP_COUNT, GROUP_TITLES, LETTERS, lettersOfGroup } from '../data/alphabet';
-import { acquiredCount, MASTERY, suggest, Suggestion } from '../lib/engine';
+import { BONUS_LESSONS } from '../data/bonusLessons';
+import { acquiredCount, bonusUnlocked, MASTERY, suggest, Suggestion } from '../lib/engine';
 import { Progress } from '../lib/store';
 import { Button, Card, Chip, Ring } from '../ui/components';
 import { Theme } from '../ui/theme';
@@ -13,11 +14,13 @@ export default function Home({
   onLesson,
   onQuiz,
   onStats,
+  onBonus,
 }: {
   progress: Progress;
   onLesson: (group: number) => void;
   onQuiz: () => void;
   onStats: () => void;
+  onBonus: (id: number) => void;
 }) {
   const theme = useTheme();
   const { C, F, G } = theme;
@@ -58,18 +61,28 @@ export default function Home({
       <Card style={{ marginTop: 18 }}>
         <Text style={st.eyebrow}>CONSEILLÉ MAINTENANT</Text>
         <Text style={st.suggestTitle}>
-          {s.kind === 'lesson'
-            ? `Leçon ${s.group + 1} · ${GROUP_TITLES[s.group]}`
-            : 'Quiz de révision'}
+          {s.kind === 'lesson' && `Leçon ${s.group + 1} · ${GROUP_TITLES[s.group]}`}
+          {s.kind === 'bonus' && BONUS_LESSONS[s.id]?.title}
+          {s.kind === 'quiz' && 'Quiz de révision'}
         </Text>
         <Text style={st.suggestReason}>{s.reason}</Text>
         <View style={{ marginTop: 16 }}>
           <Button
-            label={s.kind === 'lesson' ? 'Commencer la leçon' : 'Lancer le quiz'}
-            onPress={() => (s.kind === 'lesson' ? onLesson(s.group) : onQuiz())}
+            label={
+              s.kind === 'lesson'
+                ? 'Commencer la leçon'
+                : s.kind === 'bonus'
+                  ? 'Découvrir la leçon bonus'
+                  : 'Lancer le quiz'
+            }
+            onPress={() => {
+              if (s.kind === 'lesson') onLesson(s.group);
+              else if (s.kind === 'bonus') onBonus(s.id);
+              else onQuiz();
+            }}
           />
         </View>
-        {progress.completed.length > 0 && s.kind === 'lesson' && (
+        {progress.completed.length > 0 && s.kind !== 'quiz' && (
           <View style={{ marginTop: 10 }}>
             <Button label="Ou réviser avec un quiz libre" kind="soft" onPress={onQuiz} />
           </View>
@@ -150,6 +163,44 @@ export default function Home({
           );
         })}
       </View>
+
+      {/* ——— Leçons bonus (débloquées une fois les 39 lettres acquises) ——— */}
+      {bonusUnlocked(progress) && (
+        <>
+          <Text style={st.sectionTitle}>Leçons bonus</Text>
+          <Text style={st.bonusIntro}>
+            Toutes les lettres sont acquises ! Ces leçons n'en ajoutent pas de
+            nouvelles — juste beaucoup de mots et de phrases pour lire plus
+            vite.
+          </Text>
+          {BONUS_LESSONS.map((b) => {
+            const done = progress.bonusCompleted.includes(b.id);
+            return (
+              <Pressable
+                key={b.id}
+                onPress={() => onBonus(b.id)}
+                style={({ pressed }) => [
+                  st.step,
+                  { marginLeft: 58 },
+                  pressed && { transform: [{ scale: 0.985 }] },
+                ]}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={st.stepTitle}>
+                    {b.emoji} {b.title}
+                  </Text>
+                  <Text style={st.stepMeta}>
+                    {b.words.length} mots · {b.phrases.length} phrases
+                  </Text>
+                </View>
+                <Text style={[st.stepArrow, done && { color: C.success }]}>
+                  {done ? '✓' : '→'}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </>
+      )}
     </ScrollView>
   );
 }
@@ -203,6 +254,14 @@ function makeStyles({ C, F, R, SHADOW }: Theme) {
       fontFamily: F.uiX,
       color: C.ink,
       marginTop: 28,
+      marginBottom: 14,
+    },
+    bonusIntro: {
+      fontSize: 13.5,
+      fontFamily: F.ui,
+      color: C.inkSoft,
+      lineHeight: 19,
+      marginTop: -6,
       marginBottom: 14,
     },
     path: {},

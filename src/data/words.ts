@@ -116,6 +116,16 @@ export const WORDS: Word[] = [
   { hy: 'բարև', fr: 'bonjour', group: 9, emoji: '👋' },
   { hy: 'Երևան', fr: 'Erevan (capitale)', group: 9, emoji: '🏛️' },
   { hy: 'և', fr: 'et', group: 9, emoji: '➕' },
+
+  // Vocabulaire supplémentaire — leçons bonus et phrases
+  { hy: 'տուն', fr: 'maison', group: 3, emoji: '🏠' },
+  { hy: 'հայր', fr: 'père', group: 4, emoji: '👨‍👧' },
+  { hy: 'ուրախ', fr: 'content, joyeux', group: 5, emoji: '😄' },
+  { hy: 'դպրոց', fr: 'école', group: 5, emoji: '🏫' },
+  { hy: 'ծով', fr: 'mer', group: 8, emoji: '🌊' },
+  { hy: 'գիրք', fr: 'livre', group: 8, emoji: '📖' },
+  { hy: 'մենք', fr: 'nous', group: 8, emoji: '🙌' },
+  { hy: 'արև', fr: 'soleil', group: 9, emoji: '☀️' },
 ];
 
 export function wordsUpToGroup(g: number): Word[] {

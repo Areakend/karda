@@ -13,7 +13,10 @@ import {
   lettersOfGroup,
   pron,
   transliterate,
+  transliteratePhrase,
 } from '../data/alphabet';
+import { BONUS_LESSONS, BonusLesson } from '../data/bonusLessons';
+import { Phrase, phrasesUpToGroup } from '../data/phrases';
 import { Word, wordsOfGroup, wordsUpToGroup } from '../data/words';
 import { isoDate, Progress, today } from './store';
 
@@ -24,7 +27,12 @@ export type Question =
   | { type: 'l2s'; letter: Letter; options: string[]; answer: string }
   | { type: 's2l'; letter: Letter; options: Letter[]; answerId: string; sound: string }
   | { type: 'word'; word: Word; options: string[]; answer: string }
-  | { type: 'listen'; word: Word; options: Word[]; answer: string };
+  | { type: 'listen'; word: Word; options: Word[]; answer: string }
+  | { type: 'phrase'; phrase: Phrase; options: string[]; answer: string }
+  /** Auto-évaluée : tracer une lettre au doigt n'est pas fiable à noter
+   *  automatiquement, donc c'est l'utilisateur qui indique s'il/elle a
+   *  réussi une fois la bonne réponse révélée. */
+  | { type: 'draw'; letter: Letter; sound: string };
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -142,8 +150,23 @@ export function isGroupUnlocked(p: Progress, g: number): boolean {
   return nextLessonGroup(p) === g;
 }
 
+/** Les leçons bonus se débloquent une fois les 39 lettres apprises */
+export function bonusUnlocked(p: Progress): boolean {
+  return nextLessonGroup(p) === null;
+}
+
+/** Première leçon bonus pas encore faite, ou null si tout est fait (ou pas encore débloqué) */
+export function nextBonusLesson(p: Progress): number | null {
+  if (!bonusUnlocked(p)) return null;
+  for (const b of BONUS_LESSONS) {
+    if (!p.bonusCompleted.includes(b.id)) return b.id;
+  }
+  return null;
+}
+
 export type Suggestion =
   | { kind: 'lesson'; group: number; reason: string }
+  | { kind: 'bonus'; id: number; reason: string }
   | { kind: 'quiz'; reason: string };
 
 /** Prochaine activité conseillée */
@@ -171,6 +194,15 @@ export function suggest(p: Progress): Suggestion {
       kind: 'lesson',
       group: next,
       reason: 'Tes lettres sont solides, passe au groupe suivant !',
+    };
+  }
+  const bonus = nextBonusLesson(p);
+  if (bonus !== null) {
+    const lesson = BONUS_LESSONS[bonus];
+    return {
+      kind: 'bonus',
+      id: bonus,
+      reason: `Les 39 lettres sont acquises — ${lesson.title.toLowerCase()} t'attend : plein de mots et de phrases.`,
     };
   }
   return { kind: 'quiz', reason: 'Tout est débloqué — entretiens ta lecture !' };
@@ -208,6 +240,10 @@ function pickDistractorLetters(
     }
   }
   return distractors;
+}
+
+function makeDrawQ(letter: Letter, dialect: Dialect): Question {
+  return { type: 'draw', letter, sound: pron(letter, dialect).r };
 }
 
 function makeL2S(letter: Letter, dialect: Dialect, poolHint: Letter[]): Question {
@@ -250,6 +286,16 @@ function makeListenQ(word: Word, pool: Word[]): Question {
   };
 }
 
+function makePhraseQ(phrase: Phrase, dialect: Dialect, pool: Phrase[]): Question {
+  const answer = transliteratePhrase(phrase.hy, dialect);
+  const distractors = shuffle(pool.filter((ph) => ph.hy !== phrase.hy))
+    .map((ph) => transliteratePhrase(ph.hy, dialect))
+    .filter((t) => t !== answer)
+    .filter((t, i, arr) => arr.indexOf(t) === i)
+    .slice(0, 3);
+  return { type: 'phrase', phrase, options: shuffle([answer, ...distractors]), answer };
+}
+
 /**
  * Génère un quiz.
  * @param focusGroup si fourni, mini-quiz de fin de leçon centré sur ce groupe
@@ -277,16 +323,29 @@ export function makeQuiz(
     ? wordPool.filter((w) => !excludeWordsHy.has(w.hy))
     : wordPool;
   const words = eligible.length > 0 ? eligible : wordPool;
+  // Les phrases n'apparaissent que dans le quiz libre (pas le mini-quiz de
+  // fin de leçon, centré sur les 4 nouvelles lettres), et seulement de
+  // temps en temps — la lecture de phrase est plus exigeante qu'un mot seul.
+  const phrasePool = focusGroup === undefined ? phrasesUpToGroup(maxGroup) : [];
 
   const questions: Question[] = [];
   let lastLetterId: string | null = null;
   const usedWords = new Set<string>();
+  const usedPhrases = new Set<string>();
 
   for (let i = 0; i < n; i++) {
     // Environ 1 question sur 3 porte sur un mot entier (si disponible),
     // moitié en lecture, moitié en écoute.
     const wantWord = words.length > 0 && i % 3 === 2 && wordPool.length >= 4;
     if (wantWord) {
+      const wantPhrase = phrasePool.length > 0 && Math.random() < 0.35;
+      if (wantPhrase) {
+        const remaining = phrasePool.filter((ph) => !usedPhrases.has(ph.hy));
+        const ph = shuffle(remaining.length > 0 ? remaining : phrasePool)[0];
+        usedPhrases.add(ph.hy);
+        questions.push(makePhraseQ(ph, dialect, phrasePool));
+        continue;
+      }
       const remaining = words.filter((w) => !usedWords.has(w.hy));
       const w = shuffle(remaining.length > 0 ? remaining : words)[0];
       usedWords.add(w.hy);
@@ -303,10 +362,49 @@ export function makeQuiz(
       }
     }
     lastLetterId = letter.id;
+    // De temps en temps (~1 question sur 5), on demande de tracer la
+    // lettre plutôt que de la reconnaître — un exercice à part, auto-évalué
+    // par l'utilisateur (voir QuizView).
+    const r = Math.random();
     questions.push(
-      Math.random() < 0.5
-        ? makeL2S(letter, dialect, letters)
-        : makeS2L(letter, dialect, letters)
+      r < 0.2
+        ? makeDrawQ(letter, dialect)
+        : r < 0.6
+          ? makeL2S(letter, dialect, letters)
+          : makeS2L(letter, dialect, letters)
+    );
+  }
+  return questions;
+}
+
+/**
+ * Quiz d'une leçon bonus : uniquement des mots et des phrases (les lettres
+ * sont déjà toutes maîtrisées), piochés dans le contenu propre à cette
+ * leçon — pas de répétition espacée ici, l'objectif est la vitesse et
+ * l'aisance de lecture, pas la mémorisation d'un alphabet déjà acquis.
+ */
+export function makeBonusQuiz(lesson: BonusLesson, dialect: Dialect, n: number): Question[] {
+  const { words, phrases } = lesson;
+  if (words.length === 0 && phrases.length === 0) return [];
+
+  const questions: Question[] = [];
+  const usedWords = new Set<string>();
+  const usedPhrases = new Set<string>();
+
+  for (let i = 0; i < n; i++) {
+    const wantPhrase = phrases.length > 0 && (words.length === 0 || i % 3 === 2);
+    if (wantPhrase) {
+      const remaining = phrases.filter((ph) => !usedPhrases.has(ph.hy));
+      const ph = shuffle(remaining.length > 0 ? remaining : phrases)[0];
+      usedPhrases.add(ph.hy);
+      questions.push(makePhraseQ(ph, dialect, phrases));
+      continue;
+    }
+    const remaining = words.filter((w) => !usedWords.has(w.hy));
+    const w = shuffle(remaining.length > 0 ? remaining : words)[0];
+    usedWords.add(w.hy);
+    questions.push(
+      Math.random() < 0.5 ? makeWordQ(w, dialect, words) : makeListenQ(w, words)
     );
   }
   return questions;
@@ -331,6 +429,11 @@ export function applyResult(p: Progress, q: Question, correct: boolean): Progres
   if (q.type === 'word' || q.type === 'listen') {
     if (correct) {
       for (const l of new Set(wordLetterIds(q.word.hy))) bump(l, true);
+    }
+  } else if (q.type === 'phrase') {
+    if (correct) {
+      const ids = q.phrase.hy.split(' ').flatMap(wordLetterIds);
+      for (const l of new Set(ids)) bump(l, true);
     }
   } else {
     bump(q.letter.id, correct);

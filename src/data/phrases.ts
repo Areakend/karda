@@ -23,6 +23,19 @@ export const PHRASES: Phrase[] = [
   { hy: 'ես քեզ սիրում եմ', fr: "je t'aime", group: 8 },
   { hy: 'բարև ընկեր', fr: 'salut, ami', group: 9 },
   { hy: 'այսօր լավ օր է', fr: 'aujourd\'hui est un bon jour', group: 9 },
+
+  // Vocabulaire supplémentaire — voir words.ts
+  { hy: 'ջուրը ցուրտ է', fr: "l'eau est froide", group: 7 },
+  { hy: 'իմ հայրը ուրախ է', fr: 'mon père est content', group: 7 },
+  { hy: 'իմ ընկերը ուրախ է', fr: 'mon ami est content', group: 7 },
+  { hy: 'ես դպրոց գնում եմ', fr: "je vais à l'école", group: 5 },
+  { hy: 'իմ տունը մեծ է', fr: 'ma maison est grande', group: 8 },
+  { hy: 'ես գիրք եմ կարդում', fr: 'je lis un livre', group: 8 },
+  { hy: 'մենք ընկերներ ենք', fr: 'nous sommes amis', group: 8 },
+  { hy: 'մենք հայ ենք', fr: 'nous sommes arméniens', group: 8 },
+  { hy: 'մեծ ծով', fr: 'une grande mer', group: 8 },
+  { hy: 'գեղեցիկ արև', fr: 'un beau soleil', group: 9 },
+  { hy: 'արևը գեղեցիկ է', fr: 'le soleil est beau', group: 9 },
 ];
 
 export function phrasesUpToGroup(g: number): Phrase[] {
