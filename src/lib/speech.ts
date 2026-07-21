@@ -1,4 +1,6 @@
+import { createAudioPlayer, AudioPlayer } from 'expo-audio';
 import * as Speech from 'expo-speech';
+import { fetchAzureArmenianAudio } from './azureSpeech';
 
 let voiceCheck: Promise<boolean> | null = null;
 
@@ -22,20 +24,69 @@ function forcePhonetic(text: string): string {
   return text.length === 1 ? text + text : text;
 }
 
+let cloudPlayer: AudioPlayer | null = null;
+
+function stopCloudPlayer(): void {
+  if (cloudPlayer) {
+    try {
+      cloudPlayer.remove();
+    } catch {}
+    cloudPlayer = null;
+  }
+}
+
+function playCloudAudio(uri: string): void {
+  const player = createAudioPlayer({ uri });
+  cloudPlayer = player;
+  const sub = player.addListener('playbackStatusUpdate', (status) => {
+    if (status.didJustFinish) {
+      sub.remove();
+      if (cloudPlayer === player) cloudPlayer = null;
+      try {
+        player.remove();
+      } catch {}
+    }
+  });
+  player.play();
+}
+
+let playToken = 0;
+
 /**
- * Lit un texte à voix haute. Utilise une voix arménienne (hy-AM) si
- * l'appareil en a une ; sinon lit la romanisation avec la voix par défaut,
- * pour donner quand même un repère sonore plutôt que de rester muet.
+ * Lit un texte à voix haute. Ordre de préférence :
+ * 1. Voix hy-AM native de l'appareil, si installée (immédiat, hors-ligne) —
+ *    quasiment jamais le cas en pratique, aucun moteur grand public n'a de
+ *    voix arménienne embarquée.
+ * 2. Voix arménienne Azure en ligne, mise en cache après le premier essai
+ *    (rejouable hors-ligne ensuite).
+ * 3. Repli hors-ligne : romanisation lue par la voix par défaut de
+ *    l'appareil, pour garder un repère sonore même sans réseau/clé Azure.
  */
 export function speakHy(hy: string, romanized?: string): void {
+  const myToken = ++playToken;
   Speech.stop();
+  stopCloudPlayer();
+
+  const fallback = () => {
+    if (myToken === playToken && romanized) {
+      Speech.speak(forcePhonetic(romanized), { rate: 0.85 });
+    }
+  };
+
   hasArmenianVoice()
-    .then((ok) => {
+    .then(async (ok) => {
+      if (myToken !== playToken) return;
       if (ok) {
         Speech.speak(hy, { language: 'hy-AM', rate: 0.8 });
-      } else if (romanized) {
-        Speech.speak(forcePhonetic(romanized), { rate: 0.85 });
+        return;
+      }
+      const uri = await fetchAzureArmenianAudio(hy);
+      if (myToken !== playToken) return;
+      if (uri) {
+        playCloudAudio(uri);
+      } else {
+        fallback();
       }
     })
-    .catch(() => {});
+    .catch(fallback);
 }

@@ -22,7 +22,8 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# Local env files
+# Local env files (clé Azure Speech, etc.)
+.env
 .env*.local
 
 # Build artifacts

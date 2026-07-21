@@ -66,6 +66,10 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          # Voix arménienne Azure — facultatif : sans ces secrets, l'appli
+          # bundlée retombe simplement sur le repli hors-ligne.
+          EXPO_PUBLIC_AZURE_SPEECH_KEY: ${{ secrets.AZURE_SPEECH_KEY }}
+          EXPO_PUBLIC_AZURE_SPEECH_REGION: ${{ secrets.AZURE_SPEECH_REGION }}
         run: ./gradlew assembleRelease
 
       - name: Extract version from package.json
