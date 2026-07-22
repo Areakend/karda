@@ -1,0 +1,28 @@
+name: Debug Azure TTS
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    name: Test Azure Speech endpoint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Azure TTS with the configured secrets
+        env:
+          AZURE_SPEECH_KEY: ${{ secrets.AZURE_SPEECH_KEY }}
+          AZURE_SPEECH_REGION: ${{ secrets.AZURE_SPEECH_REGION }}
+        run: |
+          echo "Region: $AZURE_SPEECH_REGION"
+          echo "Key length: ${#AZURE_SPEECH_KEY}"
+          curl -s -D - -o response.bin \
+            -X POST "https://${AZURE_SPEECH_REGION}.tts.speech.microsoft.com/cognitiveservices/v1" \
+            -H "Ocp-Apim-Subscription-Key: $AZURE_SPEECH_KEY" \
+            -H "Content-Type: application/ssml+xml" \
+            -H "X-Microsoft-OutputFormat: audio-16khz-64kbitrate-mono-mp3" \
+            -d '<speak version="1.0" xml:lang="hy-AM"><voice name="hy-AM-AnahitNeural">Բարև</voice></speak>'
+          echo "--- response body (first 500 bytes, as text) ---"
+          head -c 500 response.bin
+          echo
+          echo "--- file type ---"
+          file response.bin
