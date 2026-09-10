@@ -51,6 +51,11 @@ function shuffle<T>(arr: T[]): T[] {
 const DEFAULT_EASE = 2.5;
 const MIN_EASE = 1.3;
 const MAX_EASE = 3.0;
+// Un an de recul suffit largement pour une lettre déjà maîtrisée ; sans
+// plafond, l'intervalle grandit sans fin (x2.5 environ à chaque bonne
+// réponse) et finit par dépasser la plage de dates valides en JS, ce qui
+// fait planter isoDate() avec un RangeError sur les comptes très actifs.
+const MAX_INTERVAL_DAYS = 365;
 
 function scheduleLetter(
   due: Record<string, string>,
@@ -61,7 +66,9 @@ function scheduleLetter(
 ): { due: Record<string, string>; interval: Record<string, number>; ease: Record<string, number> } {
   const e = ease[id] ?? DEFAULT_EASE;
   const iv = interval[id] ?? 0;
-  const nextInterval = correct ? (iv === 0 ? 1 : iv === 1 ? 3 : Math.round(iv * e)) : 0;
+  const nextInterval = correct
+    ? Math.min(MAX_INTERVAL_DAYS, iv === 0 ? 1 : iv === 1 ? 3 : Math.round(iv * e))
+    : 0;
   const nextEase = correct ? Math.min(MAX_EASE, e + 0.1) : Math.max(MIN_EASE, e - 0.2);
   const dueDate = isoDate(new Date(Date.now() + nextInterval * 24 * 3600 * 1000));
   return {
