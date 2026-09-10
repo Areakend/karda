@@ -51,11 +51,12 @@ function shuffle<T>(arr: T[]): T[] {
 const DEFAULT_EASE = 2.5;
 const MIN_EASE = 1.3;
 const MAX_EASE = 3.0;
-// Un an de recul suffit largement pour une lettre déjà maîtrisée ; sans
-// plafond, l'intervalle grandit sans fin (x2.5 environ à chaque bonne
-// réponse) et finit par dépasser la plage de dates valides en JS, ce qui
-// fait planter isoDate() avec un RangeError sur les comptes très actifs.
-const MAX_INTERVAL_DAYS = 365;
+// Sans plafond, l'intervalle grandit sans fin (x2,5 environ à chaque
+// bonne réponse) et finit par dépasser la plage de dates valides en JS,
+// ce qui fait planter isoDate() avec un RangeError sur les comptes très
+// actifs. Un mois de recul max garde aussi les lettres maîtrisées dans
+// une rotation de révision plus fréquente.
+const MAX_INTERVAL_DAYS = 30;
 
 function scheduleLetter(
   due: Record<string, string>,
